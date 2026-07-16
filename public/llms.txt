@@ -1,0 +1,24 @@
+# Insightive Software
+
+> Fit-built software engineered for how you actually work, handed over with full ownership. Insightive sells no software and carries no vendor margin: it either advises, or it builds. Priority markets: Pakistan, the UAE and Saudi Arabia.
+
+## Services
+- [Advisory](https://insightive.io/services/advisory): vendor-neutral technology decisions (stay, extend or build) backed by a financial model.
+- [Build](https://insightive.io/services/build): fit-built software at Process, System and Platform scale, owned outright with full handover of code, data and infrastructure.
+
+## Industries
+- [Retail & Commerce](https://insightive.io/industries/retail-commerce): commerce in cash-on-delivery markets, courier orchestration, tax-authority integration.
+- [Real Estate](https://insightive.io/industries/real-estate): Gulf and South Asia rental operations, Ejari/Ejar, post-dated cheques, compliance-native platforms.
+- [HR & Talent](https://insightive.io/industries/hr-talent): statutory payroll at scale, GCC compliance-native recruiting, AI-first HR operations.
+- [Healthcare](https://insightive.io/industries/healthcare): infection-control surveillance, telehealth, AI-driven organizational wellness.
+- [Education](https://insightive.io/industries/education): school management, assessment and learning-recommendation systems.
+
+## Insights
+- [The Thesis: Software That Fits. Software You Own.](https://insightive.io/thesis)
+- [The Near-Fit Tax](https://insightive.io/insights/the-near-fit-tax)
+- [Rent vs. Own: The Five-Year Math](https://insightive.io/insights/rent-vs-own-five-year-math)
+- [The Anatomy of Lock-In](https://insightive.io/insights/anatomy-of-lock-in)
+- [AI Didn't Make Software Cheaper. It Made Fit Affordable.](https://insightive.io/insights/ai-made-fit-affordable)
+
+## Contact
+- [Start a conversation](https://insightive.io/contact)

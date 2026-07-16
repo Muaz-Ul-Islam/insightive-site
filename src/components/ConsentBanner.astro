@@ -1,0 +1,92 @@
+---
+// Consent-gated analytics. NOTHING loads until the visitor accepts.
+// On Accept (or a stored 'granted' choice) we inject GA4 + the Meta Pixel.
+// On Decline / no choice, no analytics script is ever downloaded.
+interface Props { ga4?: string; metaPixel?: string; }
+const { ga4, metaPixel } = Astro.props;
+---
+<div id="consent-banner" class="consent-banner on-dark" role="dialog" aria-label="Cookie consent" aria-live="polite" hidden>
+  <p class="consent-text">
+    We use cookies for analytics and advertising measurement (Google Analytics and the Meta pixel).
+    Nothing loads until you accept. See our <a href="/privacy-policy">Privacy Policy</a>.
+  </p>
+  <div class="consent-actions">
+    <button type="button" class="btn btn-ghost" data-consent="decline">Decline</button>
+    <button type="button" class="btn btn-primary" data-consent="accept">Accept</button>
+  </div>
+</div>
+
+<style>
+  .consent-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    background: var(--navy);
+    color: var(--paper-on-navy);
+    border-top: 1px solid var(--hairline-on-navy);
+    padding: var(--s-3) var(--gutter);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .consent-text { font-size: var(--text-sm); line-height: 1.5; max-width: 78ch; color: var(--soft-on-navy); margin: 0; }
+  .consent-text a { color: var(--paper-on-navy); border-bottom: 1px solid var(--hairline-on-navy); text-decoration: none; }
+  .consent-actions { display: flex; gap: var(--s-2); flex-shrink: 0; }
+  .consent-banner .btn { padding: 9px 20px; }
+  @media (max-width: 600px) {
+    .consent-banner { flex-direction: column; align-items: stretch; }
+    .consent-actions { justify-content: flex-end; }
+  }
+</style>
+
+<script is:inline define:vars={{ ga4, metaPixel }}>
+  (function () {
+    var KEY = 'insightive-consent';
+    var banner = document.getElementById('consent-banner');
+    var loaded = false;
+    function loadAnalytics() {
+      if (loaded) return;
+      loaded = true;
+      if (ga4) {
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag('js', new Date());
+        gtag('config', ga4);
+        var g = document.createElement('script');
+        g.async = true;
+        g.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4;
+        document.head.appendChild(g);
+      }
+      if (metaPixel) {
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', metaPixel);
+        fbq('track', 'PageView');
+      }
+    }
+    function show() { if (banner) banner.hidden = false; }
+    function choose(value) {
+      try { localStorage.setItem(KEY, value); } catch (e) {}
+      if (value === 'granted') loadAnalytics();
+      if (banner) banner.hidden = true;
+    }
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    if (saved === 'granted') loadAnalytics();
+    else if (saved !== 'denied') show();
+
+    if (banner) {
+      banner.querySelectorAll('[data-consent]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          choose(b.getAttribute('data-consent') === 'accept' ? 'granted' : 'denied');
+        });
+      });
+    }
+    document.querySelectorAll('[data-consent-reopen]').forEach(function (el) {
+      el.addEventListener('click', function (e) { e.preventDefault(); show(); });
+    });
+  })();
+</script>

@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Page Not Found | Insightive" description="This page doesn't exist, or doesn't fit.">
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">404</p>
+      <h1>This page doesn't <span class="serif-em tick">fit</span>.</h1>
+      <p style="max-width: 50ch; color: var(--ink-soft); margin-block: var(--s-4) var(--s-5);">
+        The page you're looking for moved, was retired, or never existed. The thesis,
+        however, is exactly where it should be.
+      </p>
+      <div style="display: flex; gap: var(--s-3); flex-wrap: wrap;">
+        <a href="/" class="btn btn-primary">Back to Home</a>
+        <a href="/thesis" class="btn btn-ghost">Read the Thesis</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin-top: var(--s-4); }
+</style>

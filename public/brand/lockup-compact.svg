@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="360" height="80">
+  <g transform="translate(8,16)">
+    <circle cx="22" cy="22" r="20" fill="#0066CC"></circle>
+    <circle cx="22" cy="22" r="12" fill="#FAFAFA"></circle>
+    <circle cx="22" cy="22" r="5" fill="#0066CC"></circle>
+    <path d="M 19 41 L 25 41 L 25 52 L 19 52 Z" fill="#0066CC"></path>
+  </g>
+  <text x="60" y="32" font-family="Helvetica Neue, Arial, sans-serif" font-weight="500" font-size="22" fill="#13141E" letter-spacing="-.6">Insightive</text>
+  <text x="60" y="50" font-family="JetBrains Mono, monospace" font-weight="500" font-size="7" fill="#0066CC" letter-spacing="3">SOFTWARE</text>
+</svg>

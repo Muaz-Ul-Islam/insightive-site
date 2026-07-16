@@ -1,0 +1,141 @@
+---
+import { fetchGlobal, resolveLink } from '../lib/payload';
+import type { PayloadHeader } from '../lib/payload';
+
+const PAYLOAD_CMS_URL = import.meta.env.PAYLOAD_CMS_URL || 'http://127.0.0.1:3000';
+
+let headerData: PayloadHeader | null = null;
+try {
+  headerData = await fetchGlobal<PayloadHeader>('header');
+} catch (e) {
+  console.warn('[Header] Failed to fetch header data from Payload CMS, using static fallback.', e);
+}
+
+// Fallback values if CMS is not available or fields are empty
+const logoUrl = headerData?.logo?.url
+  ? (headerData.logo.url.startsWith('http') ? headerData.logo.url : `${PAYLOAD_CMS_URL}${headerData.logo.url}`)
+  : '/brand/lockup-compact.svg';
+const logoAlt = headerData?.logo?.alt || 'Insightive Software';
+
+const nav = headerData?.navItems?.map(item => ({
+  href: resolveLink(item.link),
+  label: item.link.label
+})) || [
+  { href: '/thesis', label: 'Thesis' },
+  { href: '/services', label: 'Services' },
+  { href: '/industries', label: 'Industries' },
+  { href: '/insights', label: 'Insights' },
+  { href: '/careers', label: 'Careers' },
+];
+
+const ctaLabel = headerData?.ctaLabel || 'Book a Fit Assessment';
+const ctaLink = headerData?.ctaLink || '/contact';
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => path === href || path.startsWith(href + '/');
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <a href="/" class="logo" aria-label="Insightive Software — home">
+      <img src={logoUrl} alt={logoAlt} width="351" height="78" />
+    </a>
+    <nav aria-label="Main">
+      <ul>
+        {nav.map((item) => (
+          <li>
+            <a href={item.href} class:list={['nav-link', { active: isActive(item.href) }]}>{item.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <a href={ctaLink} class="btn btn-primary cta">{ctaLabel}</a>
+    <button class="menu-btn" aria-label="Open menu" aria-expanded="false" data-menu-btn>
+      <span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-nav" data-mobile-nav hidden>
+    <ul>
+      {nav.map((item) => (
+        <li><a href={item.href}>{item.label}</a></li>
+      ))}
+      <li><a href={ctaLink}>{ctaLabel}</a></li>
+    </ul>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-5);
+    height: 84px;
+  }
+  /* lockup-compact.svg carries internal padding (~20% top/bottom),
+     so it must render larger than its visual size suggests */
+  .logo img { height: 78px; width: auto; margin-left: -10px; }
+  nav { margin-left: auto; }
+  nav ul {
+    display: flex;
+    gap: var(--s-4);
+    list-style: none;
+    padding: 0;
+  }
+  .nav-link {
+    font-size: var(--text-sm);
+    font-weight: var(--w-medium);
+    text-decoration: none;
+    color: var(--ink-soft);
+    transition: color var(--t-fast) var(--ease);
+  }
+  .nav-link:hover, .nav-link.active { color: var(--ink); }
+  .nav-link.active { border-bottom: 2px solid var(--royal); padding-bottom: 2px; }
+  .cta { padding: 10px 20px; }
+
+  .menu-btn {
+    display: none;
+    background: none;
+    border: 0;
+    padding: var(--s-2);
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .menu-btn span { width: 22px; height: 2px; background: var(--ink); }
+
+  .mobile-nav {
+    border-top: 1px solid var(--hairline);
+    background: var(--paper);
+  }
+  .mobile-nav ul { list-style: none; padding: var(--s-3) var(--gutter) var(--s-4); }
+  .mobile-nav a {
+    display: block;
+    padding: var(--s-3) 0;
+    font-size: var(--text-md);
+    font-weight: var(--w-medium);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  @media (max-width: 880px) {
+    nav, .cta { display: none; }
+    .menu-btn { display: flex; margin-left: auto; }
+  }
+</style>
+
+<script>
+  const btn = document.querySelector('[data-menu-btn]');
+  const panel = document.querySelector('[data-mobile-nav]');
+  btn?.addEventListener('click', () => {
+    const open = panel?.toggleAttribute('hidden') === false;
+    btn.setAttribute('aria-expanded', String(open));
+  });
+</script>

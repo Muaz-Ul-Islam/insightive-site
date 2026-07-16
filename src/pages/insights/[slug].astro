@@ -1,0 +1,316 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import { fetchPosts, fetchPostBySlug, lexicalNodeToHtml } from '../../lib/payload';
+
+export async function getStaticPaths() {
+  // 1. Fetch from CMS
+  let cmsPosts: any[] = [];
+  try {
+    cmsPosts = await fetchPosts();
+  } catch (e) {
+    console.warn('[Insights Slug Page] Failed to fetch CMS posts during getStaticPaths.', e);
+  }
+
+  // 2. Fetch local markdown
+  const localPosts = await getCollection(
+    'insights',
+    ({ data }) => import.meta.env.DEV || !data.draft
+  );
+
+  const paths: any[] = [];
+
+  // Add CMS posts paths
+  cmsPosts.forEach((p) => {
+    paths.push({
+      params: { slug: p.slug },
+      props: { essay: p, isCms: true },
+    });
+  });
+
+  // Add local markdown paths (only if not already overridden by CMS slug)
+  localPosts.forEach((e) => {
+    const slug = e.id.replace(/\.md$/, '');
+    if (!paths.some((p) => p.params.slug === slug)) {
+      paths.push({
+        params: { slug },
+        props: { essay: e, isCms: false },
+      });
+    }
+  });
+
+  return paths;
+}
+
+const { essay, isCms } = Astro.props;
+
+// Determine if we need to render Astro markdown or Lexical HTML
+let ContentComponent: any = null;
+let cmsHtml = '';
+let title = '';
+let dek = '';
+let category = '';
+let byline = '';
+let publishDateFormatted = '';
+let readingTime = '';
+let isDraft = false;
+let takeawaysList: string[] = [];
+let schema: any[] = [];
+
+const B = 'fill="none" stroke="#0066CC" stroke-opacity="0.5" stroke-width="1"';
+const wrap = (inner: string) =>
+  `<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="320" fill="#F5F4EF"/>${inner}</svg>`;
+
+// Per-article motif tied to the essay's theme. Falls back to a per-category motif.
+const bySlug: Record<string, string> = {
+  'the-near-fit-tax': wrap(`<g ${B}><rect x="40" y="40" width="105" height="105"/><rect x="155" y="40" width="105" height="105"/><rect x="40" y="155" width="105" height="105"/><rect x="155" y="155" width="105" height="105" stroke-dasharray="6 6" stroke-opacity="0.35"/></g><rect x="184" y="184" width="96" height="96" fill="#BA7517" fill-opacity="0.85"/>`),
+  'rent-vs-own-five-year-math': wrap(`<g ${B}><line x1="48" y1="60" x2="48" y2="268"/><line x1="48" y1="268" x2="282" y2="268"/><polyline points="62,248 120,205 180,150 258,78"/><polyline points="62,120 140,112 210,109 258,107"/></g><circle cx="222" cy="110" r="6" fill="#0066CC"/>`),
+  'anatomy-of-lock-in': wrap(`<g ${B}><rect x="108" y="150" width="104" height="92" rx="8"/><path d="M128 150 v-20 a32 32 0 0 1 64 0 v-20"/></g><rect x="150" y="178" width="20" height="34" rx="4" fill="#BA7517" fill-opacity="0.9"/>`),
+  'ai-made-fit-affordable': wrap(`<g ${B}><line x1="50" y1="266" x2="282" y2="266"/><rect x="190" y="190" width="42" height="76"/></g><rect x="70" y="92" width="42" height="174" fill="#BA7517" fill-opacity="0.16" stroke="#BA7517" stroke-opacity="0.55"/><rect x="130" y="140" width="42" height="126" fill="#BA7517" fill-opacity="0.13" stroke="#BA7517" stroke-opacity="0.5"/><rect x="250" y="226" width="42" height="40" fill="#0066CC" fill-opacity="0.9"/>`),
+  'anatomy-of-a-dubai-tenancy': wrap(`<g ${B}><line x1="92" y1="66" x2="92" y2="252"/><rect x="78" y="58" width="28" height="28"/><rect x="78" y="128" width="28" height="28"/><line x1="116" y1="72" x2="250" y2="72"/><line x1="116" y1="142" x2="228" y2="142"/><line x1="116" y1="212" x2="244" y2="212"/></g><rect x="78" y="198" width="28" height="28" fill="#BA7517" fill-opacity="0.85"/><rect x="78" y="238" width="28" height="28" fill="#0066CC" fill-opacity="0.9"/>`),
+  'from-payroll-to-agentic-hr': wrap(`<g ${B}><rect x="40" y="56" width="240" height="160"/><line x1="40" y1="88" x2="280" y2="88"/><line x1="40" y1="120" x2="280" y2="120"/><line x1="40" y1="152" x2="280" y2="152"/><line x1="40" y1="184" x2="280" y2="184"/><line x1="136" y1="56" x2="136" y2="216"/></g><rect x="40" y="56" width="96" height="32" fill="#0066CC" fill-opacity="0.12"/><circle cx="200" cy="264" r="22" fill="none" stroke="#0066CC" stroke-opacity="0.5" stroke-width="1"/><circle cx="200" cy="264" r="10" fill="#0066CC" fill-opacity="0.85"/><line x1="200" y1="242" x2="200" y2="216" fill="none" stroke="#0066CC" stroke-opacity="0.5" stroke-width="1"/>`),
+  'building-software-schools-actually-run-on': wrap(`<g ${B}><rect x="40" y="50" width="240" height="190"/><line x1="40" y1="90" x2="280" y2="90"/><line x1="40" y1="130" x2="280" y2="130"/><line x1="40" y1="170" x2="280" y2="170"/><line x1="40" y1="210" x2="280" y2="210"/><line x1="100" y1="50" x2="100" y2="240"/><line x1="160" y1="50" x2="160" y2="240"/><line x1="220" y1="50" x2="220" y2="240"/></g><rect x="100" y="90" width="60" height="40" fill="#BA7517" fill-opacity="0.85"/><rect x="160" y="130" width="60" height="40" fill="#0066CC" fill-opacity="0.12"/><rect x="40" y="50" width="60" height="40" fill="#0066CC" fill-opacity="0.1"/>`),
+  'from-infection-control-to-ai-wellness': wrap(`<g ${B}><circle cx="160" cy="130" r="70"/><circle cx="160" cy="130" r="40"/></g><polyline points="60,130 95,130 110,90 130,175 150,110 165,155 180,100 200,140 220,130 260,130" fill="none" stroke="#BA7517" stroke-opacity="0.75" stroke-width="1.5"/><circle cx="160" cy="130" r="8" fill="#0066CC" fill-opacity="0.9"/>`),
+  'hubspot-fit-problem': wrap(`<g ${B}><rect x="40" y="56" width="104" height="58"/><rect x="40" y="126" width="104" height="58"/><rect x="40" y="196" width="104" height="58"/><rect x="176" y="56" width="104" height="58"/><rect x="176" y="196" width="104" height="58"/></g><path d="M176 126 h74 a29 29 0 0 1 0 58 h-74 Z" fill="#BA7517" fill-opacity="0.85"/>`),
+  'five-tool-campaign': wrap(`<g ${B}><rect x="40" y="50" width="72" height="48"/><rect x="208" y="50" width="72" height="48"/><rect x="40" y="222" width="72" height="48"/><rect x="208" y="222" width="72" height="48"/><rect x="124" y="136" width="72" height="48"/></g><g fill="none" stroke="#BA7517" stroke-opacity="0.75" stroke-width="1.2" stroke-dasharray="4 3"><line x1="112" y1="74" x2="124" y2="150"/><line x1="208" y1="74" x2="196" y2="150"/><line x1="112" y1="246" x2="124" y2="170"/><line x1="208" y1="246" x2="196" y2="170"/></g>`),
+  'glue-is-not-architecture': wrap(`<g ${B}><rect x="48" y="56" width="80" height="48"/><rect x="192" y="56" width="80" height="48"/><rect x="48" y="216" width="80" height="48"/><rect x="192" y="216" width="80" height="48"/></g><g fill="none" stroke="#BA7517" stroke-opacity="0.8" stroke-width="1.3" stroke-dasharray="4 3"><line x1="128" y1="80" x2="192" y2="80"/><line x1="88" y1="104" x2="88" y2="216"/><line x1="232" y1="104" x2="232" y2="216"/><line x1="128" y1="240" x2="192" y2="240"/><line x1="128" y1="88" x2="232" y2="232"/><line x1="232" y1="88" x2="128" y2="232"/></g><text x="160" y="170" text-anchor="middle" style="font-family:sans-serif;font-size:26px;fill:#BA7517">×</text>`),
+  'the-spreadsheet-layer': wrap(`<g ${B}><rect x="40" y="60" width="240" height="200"/><line x1="40" y1="100" x2="280" y2="100"/><line x1="40" y1="140" x2="280" y2="140"/><line x1="40" y1="180" x2="280" y2="180"/><line x1="40" y1="220" x2="280" y2="220"/><line x1="120" y1="60" x2="120" y2="260"/><line x1="200" y1="60" x2="200" y2="260"/></g><rect x="40" y="60" width="240" height="40" fill="#0066CC" fill-opacity="0.15"/><rect x="200" y="100" width="80" height="160" fill="#BA7517" fill-opacity="0.14"/>`),
+  'build-vs-buy-wrong-question': wrap(`<g ${B}><line x1="60" y1="40" x2="60" y2="280"/><line x1="60" y1="280" x2="280" y2="280"/><rect x="60" y="50" width="110" height="115"/><rect x="170" y="50" width="110" height="115"/><rect x="60" y="165" width="110" height="115"/><rect x="170" y="165" width="110" height="115"/></g><rect x="170" y="50" width="110" height="115" fill="#0066CC" fill-opacity="0.85"/>`),
+  'cost-of-inaction': wrap(`<g ${B}><line x1="50" y1="270" x2="280" y2="270"/></g><rect x="70" y="196" width="48" height="74" fill="#BA7517" fill-opacity="0.45"/><rect x="138" y="150" width="48" height="120" fill="#BA7517" fill-opacity="0.6"/><rect x="206" y="92" width="48" height="178" fill="#BA7517" fill-opacity="0.8"/>`),
+  'what-ownership-means': wrap(`<g ${B}><rect x="40" y="56" width="56" height="46"/><rect x="112" y="56" width="56" height="46"/><rect x="184" y="56" width="56" height="46"/><rect x="256" y="56" width="40" height="46"/><line x1="68" y1="102" x2="150" y2="206"/><line x1="140" y1="102" x2="158" y2="206"/><line x1="212" y1="102" x2="166" y2="206"/><line x1="276" y1="102" x2="174" y2="206"/></g><rect x="116" y="206" width="88" height="56" fill="#0066CC" fill-opacity="0.85"/>`),
+  '61-shopify-apps': wrap(`<g ${B}><rect x="90" y="100" width="140" height="120"/><rect x="120" y="56" width="40" height="30"/><rect x="170" y="56" width="40" height="30"/><rect x="44" y="120" width="34" height="34"/><rect x="44" y="170" width="34" height="34"/><rect x="242" y="120" width="34" height="34"/><rect x="242" y="170" width="34" height="34"/><rect x="120" y="234" width="40" height="30"/></g><rect x="170" y="234" width="40" height="30" fill="#BA7517" fill-opacity="0.85"/>`),
+};
+const byCategory: Record<string, string> = {
+  'Ownership Economics': wrap(`<g ${B}><rect x="40" y="40" width="120" height="120"/><rect x="160" y="40" width="120" height="60"/><rect x="160" y="100" width="120" height="60"/></g><rect x="40" y="160" width="240" height="120" fill="#0066CC" fill-opacity="0.12"/>`),
+  'Process Fit': wrap(`<g ${B}><rect x="40" y="80" width="110" height="160"/><rect x="170" y="80" width="110" height="160"/></g><rect x="134" y="140" width="52" height="40" fill="#0066CC" fill-opacity="0.9"/>`),
+  'Decision Frameworks': wrap(`<g ${B}><circle cx="80" cy="160" r="9"/><line x1="89" y1="160" x2="228" y2="90"/><line x1="89" y1="160" x2="228" y2="162"/><line x1="89" y1="160" x2="228" y2="234"/><rect x="228" y="76" width="28" height="28"/><rect x="228" y="148" width="28" height="28"/></g><rect x="228" y="220" width="28" height="28" fill="#0066CC" fill-opacity="0.9"/>`),
+  'Field Notes': wrap(`<g fill="#0066CC" fill-opacity="0.45"><circle cx="80" cy="80" r="4"/><circle cx="140" cy="80" r="4"/><circle cx="200" cy="80" r="4"/><circle cx="260" cy="80" r="4"/><circle cx="80" cy="140" r="4"/><circle cx="200" cy="140" r="4"/><circle cx="260" cy="140" r="4"/><circle cx="80" cy="200" r="4"/><circle cx="140" cy="200" r="4"/><circle cx="200" cy="200" r="4"/><circle cx="260" cy="200" r="4"/></g><circle cx="140" cy="140" r="6" fill="#0066CC"/><circle cx="140" cy="140" r="12" ${B}/>`),
+  'Industry Deep Dives': wrap(`<g ${B}><line x1="40" y1="70" x2="280" y2="70"/><line x1="40" y1="100" x2="280" y2="100"/><line x1="40" y1="170" x2="280" y2="170"/><line x1="40" y1="200" x2="280" y2="200"/><line x1="40" y1="250" x2="280" y2="250"/></g><rect x="40" y="120" width="240" height="22" fill="#0066CC" fill-opacity="0.85"/>`),
+};
+
+let slug = '';
+let banner = '';
+
+if (isCms) {
+  slug = essay.slug;
+  category = essay.categories?.[0]?.title || 'Ownership Economics';
+  title = essay.title;
+  dek = essay.dek;
+  byline = essay.bylined ? (essay.populatedAuthors?.[0]?.name || 'Insightive Software') : 'Insightive Software';
+  
+  const pDate = essay.publishedAt ? new Date(essay.publishedAt) : new Date();
+  publishDateFormatted = pDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  readingTime = essay.readingTime || '';
+  isDraft = essay._status === 'draft';
+  takeawaysList = essay.takeaways?.map((t: any) => t.takeaway) || [];
+  
+  cmsHtml = lexicalNodeToHtml(essay.content?.root);
+
+  schema = [
+    {
+      '@type': 'Article',
+      headline: title,
+      description: dek,
+      author: essay.bylined
+        ? { '@type': 'Person', name: byline }
+        : { '@type': 'Organization', name: 'Insightive Software' },
+      publisher: { '@type': 'Organization', name: 'Insightive Software', url: 'https://insightive.io' },
+      datePublished: pDate.toISOString(),
+      dateModified: essay.updatedAt ? new Date(essay.updatedAt).toISOString() : pDate.toISOString(),
+    },
+  ];
+} else {
+  const { Content } = await render(essay);
+  ContentComponent = Content;
+  
+  const d = essay.data;
+  slug = essay.id.replace(/\.md$/, '');
+  category = d.category;
+  title = d.title;
+  dek = d.dek;
+  byline = d.bylined ? d.author : 'Insightive Software';
+  publishDateFormatted = d.publishDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  readingTime = d.readingTime || '';
+  isDraft = d.draft;
+  takeawaysList = d.takeaways || [];
+
+  schema = [
+    {
+      '@type': 'Article',
+      headline: d.title,
+      description: d.dek,
+      author: d.bylined
+        ? { '@type': 'Person', name: d.author, url: 'https://theumarrana.com', sameAs: 'https://theumarrana.com' }
+        : { '@type': 'Organization', name: 'Insightive Software' },
+      publisher: { '@type': 'Organization', name: 'Insightive Software', url: 'https://insightive.io' },
+      datePublished: d.publishDate.toISOString(),
+      dateModified: (d.updatedDate ?? d.publishDate).toISOString(),
+    },
+  ];
+}
+
+banner = bySlug[slug] ?? byCategory[category] ?? byCategory['Ownership Economics'];
+
+const relatedPosts = isCms ? (essay.relatedPosts || []) : [];
+---
+
+<Base title={`${title} | Insightive Insights`} description={dek} type="article" schema={schema}>
+  <article>
+    <header class="section essay-head">
+      <div class="container essay-head-grid">
+        <div class="essay-art" aria-hidden="true" set:html={banner} />
+        <div class="essay-head-text">
+          <p class="eyebrow">{category}</p>
+          <h1>{title}</h1>
+          <p class="standfirst">{dek}</p>
+          <p class="meta">
+            {byline} &middot;
+            {publishDateFormatted}
+            {readingTime && ` · ${readingTime}`}
+            {isDraft && ' · DRAFT: PENDING REVIEW'}
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div class="container essay-body">
+      {takeawaysList.length > 0 && (
+        <aside class="takeaways">
+          <p class="tk-label">Key takeaways</p>
+          <ul>
+            {takeawaysList.map((t) => <li>{t}</li>)}
+          </ul>
+        </aside>
+      )}
+      <div class="prose">
+        {isCms ? (
+          <div set:html={cmsHtml} />
+        ) : (
+          ContentComponent && <ContentComponent />
+        )}
+      </div>
+      <div class="essay-cta">
+        <hr class="rule" />
+        <p>
+          If this essay names a problem you have, a two-week Fit Assessment puts numbers on it.
+        </p>
+        <a href="/contact?service=build" class="btn btn-primary">Book a Fit Assessment</a>
+      </div>
+    </div>
+
+    {isCms && relatedPosts.length > 0 && (
+  <aside class="section related-reading">
+    <div class="container">
+      <p class="eyebrow">Related reading</p>
+      <ul class="related-list">
+        {relatedPosts.map((r) => (
+          <li>
+            <a href={`/insights/${r.slug}`}>
+              <span class="rl-cat">
+                {r.categories?.[0]?.title || 'General'}
+              </span>
+              <span class="rl-title">
+                {r.title}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+)}
+
+  </article>
+</Base>
+
+<style>
+  .essay-head { padding-bottom: var(--s-5); border-bottom: 1px solid var(--hairline); }
+  .essay-head-grid { display: grid; grid-template-columns: 300px 1fr; gap: var(--s-6); align-items: start; }
+  .essay-art :global(svg) { display: block; width: 100%; height: auto; border: 1px solid var(--hairline); }
+  @media (max-width: 820px) {
+    .essay-head-grid { grid-template-columns: 1fr; gap: var(--s-4); }
+    .essay-art { order: 2; max-width: 260px; }
+    .essay-head-text { order: 1; }
+  }
+  .essay-head h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin: var(--s-3) 0 var(--s-4); max-width: 24ch; }
+  .essay-head-text .eyebrow { margin-bottom: var(--s-2); }
+  .standfirst {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: var(--text-lg);
+    max-width: 46ch;
+    color: var(--ink-soft);
+    margin-bottom: var(--s-4);
+  }
+  .meta {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .essay-body {
+    padding-block: var(--s-6) var(--s-7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-5);
+  }
+  .takeaways {
+    max-width: var(--max-w-prose);
+    width: 100%;
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--royal);
+    background: var(--paper-tint);
+    padding: var(--s-4) var(--s-5);
+  }
+  .tk-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--royal);
+    margin-bottom: var(--s-3);
+  }
+  .takeaways ul { padding-left: 1.2em; }
+  .takeaways li { margin-bottom: var(--s-2); }
+  .essay-cta { max-width: var(--max-w-prose); width: 100%; text-align: center; }
+  .essay-cta p { margin-block: var(--s-4); font-size: var(--text-md); }
+.related-reading { 
+  border-top: 1px solid var(--hairline); 
+  background: var(--paper-tint); 
+}
+
+.related-reading .related-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--s-4);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3);
+}
+
+.related-reading .related-list a {
+  display: block;
+  height: 100%;
+  padding: var(--s-4);
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  text-decoration: none;
+}
+
+.related-reading .rl-cat {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  color: var(--royal);
+  margin-bottom: var(--s-2);
+}
+
+.related-reading .rl-title { 
+  display: block; 
+  color: var(--ink); 
+  font-weight: var(--w-medium); 
+}
+</style>

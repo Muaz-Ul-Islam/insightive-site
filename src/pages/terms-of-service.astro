@@ -1,0 +1,68 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { fetchPage, lexicalNodeToHtml } from '../lib/payload';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('terms-of-service');
+} catch (e) {
+  console.warn('[Terms of Service Page] Failed to fetch page data from Payload CMS, using static fallback.', e);
+}
+
+const metaTitle = pageData?.meta?.title || pageData?.title || "Terms of Service | Insightive";
+const metaDescription = pageData?.meta?.description || "The terms that govern use of the insightive.io website.";
+
+const legalBlock = pageData?.layout?.find((block: any) => block.blockType === 'legalBlock');
+const hasDynamicLayout = !!legalBlock;
+
+let contentHtml = '';
+if (legalBlock?.content?.root) {
+  contentHtml = lexicalNodeToHtml(legalBlock.content.root);
+}
+---
+
+<Legal
+  title={metaTitle}
+  heading={legalBlock?.heading || pageData?.title || "Terms of Service"}
+  description={metaDescription}
+  eyebrow={legalBlock?.eyebrow}
+>
+  {hasDynamicLayout && contentHtml ? (
+    <div set:html={contentHtml} />
+  ) : (
+    <p>
+      These terms govern your use of the insightive.io website, operated by Insightive LLC-FZ.
+      Any engagement you enter with us is governed by a separate signed agreement (the proposal
+      and its annexes, together the Master Services Agreement), which takes precedence over
+      anything on this site.
+    </p>
+
+    <h2>Using this site</h2>
+    <p>
+      The site is provided for information, on an as-is basis. You agree not to scrape, copy,
+      redistribute or misrepresent its content without our permission.
+    </p>
+
+    <h2>Intellectual property</h2>
+    <p>
+      The site, its content and our frameworks, methods and code libraries remain ours. Under a
+      signed engagement you own the deliverables we build specifically for you once they are paid
+      for in full, while we keep our pre-existing methods and tools. The full terms are set out
+      in your agreement.
+    </p>
+
+    <h2>Engagements</h2>
+    <p>
+      Scope, payment, warranties, confidentiality and termination are defined in the signed
+      agreement, not on this site. Where this page and a signed agreement differ, the agreement
+      governs.
+    </p>
+
+    <h2>Liability and governing law</h2>
+    <p>
+      The site is provided without warranties of any kind and we are not liable for losses
+      arising from its use. These terms are governed by the laws of Dubai, United Arab Emirates.
+      Questions go to <a href="mailto:legal@insightive.ltd">legal@insightive.ltd</a>.
+    </p>
+  )}
+</Legal>

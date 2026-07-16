@@ -1,0 +1,28 @@
+---
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  heading: string;
+  description: string;
+  eyebrow?: string;
+}
+const { title, heading, description, eyebrow = "Legal · Updated June 2026" } = Astro.props;
+---
+
+<Base title={title} description={description}>
+  <section class="section">
+    <div class="container legal-wrap">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1>{heading}</h1>
+      <div class="prose legal-prose">
+        <slot />
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .legal-wrap h1 { font-size: var(--text-xl); font-weight: var(--w-light); margin: var(--s-4) 0 var(--s-5); }
+  .legal-prose { font-size: var(--text-base); color: var(--ink-soft); }
+</style>

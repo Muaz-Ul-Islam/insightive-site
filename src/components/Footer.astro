@@ -1,0 +1,165 @@
+---
+import { fetchGlobal, resolveLink, fetchSiteSettings } from '../lib/payload';
+import type { PayloadFooter } from '../lib/payload';
+
+const year = new Date().getFullYear();
+
+const siteSettings = await fetchSiteSettings();
+const showCookies = !!(siteSettings?.ga4Id || siteSettings?.metaPixelId || import.meta.env.PUBLIC_GA4_ID || import.meta.env.PUBLIC_META_PIXEL_ID);
+
+let footerData: PayloadFooter | null = null;
+try {
+  footerData = await fetchGlobal<PayloadFooter>('footer');
+} catch (e) {
+  console.warn('[Footer] Failed to fetch footer data from Payload CMS, using static fallback.', e);
+}
+
+// Fallback values if CMS is not available or fields are empty
+const tagline = footerData?.tagline || "Software that fits. Software you own.";
+const location = footerData?.location || "UAE based. Working with clients across the GCC and North America.";
+const whatsappUrl = footerData?.whatsappUrl || "https://wa.me/+971586978728";
+
+const siteLinks = footerData?.siteLinks?.map(item => ({
+  label: item.link.label,
+  url: resolveLink(item.link)
+})) || [
+  { label: 'The Thesis', url: '/thesis' },
+  { label: 'Industries', url: '/industries' },
+  { label: 'Work', url: '/work' },
+  { label: 'Insights', url: '/insights' },
+  { label: 'Careers', url: '/careers' },
+  { label: 'Contact', url: '/contact' }
+];
+
+const servicesLinks = footerData?.servicesLinks?.map(item => ({
+  label: item.link.label,
+  url: resolveLink(item.link)
+})) || [
+  { label: 'Advisory', url: '/services/advisory' },
+  { label: 'Build', url: '/services/build' },
+  { label: 'Partners', url: '/partners' }
+];
+
+const socialLinks = footerData?.socialLinks?.map(item => ({
+  label: item.link.label,
+  url: resolveLink(item.link)
+})) || [
+  { label: 'LinkedIn', url: 'https://www.linkedin.com/showcase/insightive-software' },
+  { label: 'Instagram', url: 'https://www.instagram.com/insightive.io/' },
+  { label: 'Facebook', url: 'https://www.facebook.com/insightivesoftware' }
+];
+
+const legalLinks = footerData?.legalLinks?.map(item => ({
+  label: item.link.label,
+  url: resolveLink(item.link)
+})) || [
+  { label: 'Privacy', url: '/privacy-policy' },
+  { label: 'Terms', url: '/terms-of-service' },
+  { label: 'Billing', url: '/billing-policy' }
+];
+
+const copyrightTextRaw = footerData?.copyrightText || "© {year} Insightive Software. All rights reserved.";
+const copyrightText = copyrightTextRaw.replace('{year}', String(year));
+---
+
+<footer class="on-dark site-footer">
+  <div class="container">
+    <div class="grid">
+      <div class="brand-col">
+        <p class="tag">{tagline}</p>
+        <p class="loc">{location}</p>
+        <a class="link-quiet" href={whatsappUrl}>WhatsApp Us</a>
+      </div>
+      <nav aria-label="Footer — site">
+        <h2 class="col-h">Site</h2>
+        <ul>
+          {siteLinks.map(item => (
+            <li><a class="link-quiet" href={item.url}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <nav aria-label="Footer — services">
+        <h2 class="col-h">Services</h2>
+        <ul>
+          {servicesLinks.map(item => (
+            <li><a class="link-quiet" href={item.url}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <nav aria-label="Footer — social">
+        <h2 class="col-h">Follow</h2>
+        <ul>
+          {socialLinks.map(item => (
+            <li><a class="link-quiet" href={item.url}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+    <hr class="rule" />
+    <div class="legal">
+      <p>{copyrightText}</p>
+      <ul>
+        {legalLinks.map(item => (
+          <li><a class="link-quiet" href={item.url}>{item.label}</a></li>
+        ))}
+        {showCookies && <li><button type="button" class="cookie-btn" data-consent-reopen aria-haspopup="dialog">Cookies</button></li>}
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer { padding-block: var(--s-7) var(--s-5); }
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.4fr 1fr;
+    gap: var(--s-6);
+    margin-bottom: var(--s-6);
+  }
+  .brand-col img { height: 32px; width: auto; margin-bottom: var(--s-4); }
+  .tag {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: var(--text-md);
+    margin-bottom: var(--s-2);
+  }
+  .loc {
+    font-size: var(--text-xs);
+    color: var(--soft-on-navy);
+    max-width: 34ch;
+    margin-bottom: var(--s-3);
+  }
+  .col-h {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--soft-on-navy);
+    margin-bottom: var(--s-3);
+    font-weight: 500;
+  }
+  ul { list-style: none; padding: 0; }
+  li { margin-bottom: var(--s-2); font-size: var(--text-sm); }
+  a { text-decoration: none; }
+  .cookie-btn {
+    background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer;
+    border-bottom: 1px dotted var(--soft-on-navy);
+  }
+  .cookie-btn::after { content: " ⚙"; font-size: 0.85em; }
+  .cookie-btn:hover { border-bottom-color: var(--paper-on-navy); }
+  .legal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s-4);
+    padding-top: var(--s-4);
+    color: var(--soft-on-navy);
+    font-size: var(--text-xs);
+  }
+  .legal ul { display: flex; gap: var(--s-4); }
+  .legal li { margin: 0; }
+  @media (max-width: 880px) {
+    .grid { grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+    .legal { flex-direction: column; align-items: flex-start; }
+  }
+</style>

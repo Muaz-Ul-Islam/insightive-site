@@ -1,0 +1,65 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { fetchPage, lexicalNodeToHtml } from '../lib/payload';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('billing-policy');
+} catch (e) {
+  console.warn('[Billing Policy Page] Failed to fetch page data from Payload CMS, using static fallback.', e);
+}
+
+const metaTitle = pageData?.meta?.title || pageData?.title || "Billing Policy | Insightive";
+const metaDescription = pageData?.meta?.description || "How Insightive invoices and is paid.";
+
+const legalBlock = pageData?.layout?.find((block: any) => block.blockType === 'legalBlock');
+const hasDynamicLayout = !!legalBlock;
+
+let contentHtml = '';
+if (legalBlock?.content?.root) {
+  contentHtml = lexicalNodeToHtml(legalBlock.content.root);
+}
+---
+
+<Legal
+  title={metaTitle}
+  heading={legalBlock?.heading || pageData?.title || "Billing Policy"}
+  description={metaDescription}
+  eyebrow={legalBlock?.eyebrow}
+>
+  {hasDynamicLayout && contentHtml ? (
+    <div set:html={contentHtml} />
+  ) : (
+    <p>
+      This is how Insightive LLC-FZ invoices and is paid. The specifics for any engagement are
+      set in your signed proposal; this page is the general policy.
+    </p>
+
+    <h2>Currency and VAT</h2>
+    <p>
+      Fees are quoted in AED or USD and are exclusive of VAT. A 5% VAT is added where UAE tax
+      regulations require it.
+    </p>
+
+    <h2>Projects</h2>
+    <p>
+      Project work is billed against the milestones agreed in your proposal, beginning with a
+      mobilization payment on acceptance and continuing as each milestone is delivered.
+    </p>
+
+    <h2>Retainers</h2>
+    <p>
+      Retainers are billed in advance, on the first of each month, with payment due within 15
+      days of the invoice.
+    </p>
+
+    <h2>Invoices, late payment and disputes</h2>
+    <p>
+      Unless your proposal states otherwise, invoices are due within 15 days of the invoice date.
+      Amounts unpaid more than 30 days past the due date may attract a late fee of 5% of the
+      outstanding balance. If you believe an invoice is wrong, raise it within 14 days of receipt
+      and we will resolve it quickly. Billing questions go to
+      <a href="mailto:legal@insightive.ltd">legal@insightive.ltd</a>.
+    </p>
+  )}
+</Legal>

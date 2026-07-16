@@ -1,0 +1,78 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { fetchPage, lexicalNodeToHtml } from '../lib/payload';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('privacy-policy');
+} catch (e) {
+  console.warn('[Privacy Policy Page] Failed to fetch page data from Payload CMS, using static fallback.', e);
+}
+
+const metaTitle = pageData?.meta?.title || pageData?.title || "Privacy Policy | Insightive";
+const metaDescription = pageData?.meta?.description || "How Insightive collects, uses and protects your data.";
+
+const legalBlock = pageData?.layout?.find((block: any) => block.blockType === 'legalBlock');
+const hasDynamicLayout = !!legalBlock;
+
+let contentHtml = '';
+if (legalBlock?.content?.root) {
+  contentHtml = lexicalNodeToHtml(legalBlock.content.root);
+}
+---
+
+<Legal
+  title={metaTitle}
+  heading={legalBlock?.heading || pageData?.title || "Privacy Policy"}
+  description={metaDescription}
+  eyebrow={legalBlock?.eyebrow}
+>
+  {hasDynamicLayout && contentHtml ? (
+    <div set:html={contentHtml} />
+  ) : (
+    <p>
+      Insightive LLC-FZ ("Insightive", "we") respects your privacy. This policy explains what
+      we collect, why and how you can exercise your rights under applicable law, including the
+      UAE Personal Data Protection Law and the GDPR where relevant.
+    </p>
+
+    <h2>What we collect</h2>
+    <p>
+      We collect what you choose to send us: contact form submissions (name, email, company
+      and message), career applications (your details and the CV you upload) and newsletter
+      sign-ups. We also collect basic, aggregated analytics about how the site is used.
+    </p>
+
+    <h2>How we use it</h2>
+    <p>
+      To respond to your enquiry, assess job applications, send updates you asked for and
+      improve the site. We do not sell your data and we do not use it for anything beyond the
+      purpose it was given for.
+    </p>
+
+    <h2>Who we share it with</h2>
+    <p>
+      Only the service providers that help us run the site and our communications, such as our
+      hosting, email and analytics providers, under terms that require them to protect it. We use
+      Google Analytics (GA4) to understand site usage and the Meta pixel to measure advertising;
+      both may set cookies and process limited data under their own privacy terms. You can accept or
+      decline these via the consent banner on your first visit and change your choice anytime using
+      the Cookies link in the footer. We do not sell your data or share it with anyone else without
+      your consent.
+    </p>
+
+    <h2>How long we keep it</h2>
+    <p>
+      Only as long as the purpose needs or the law requires. Career submissions stay on file for
+      future roles unless you ask us to remove them.
+    </p>
+
+    <h2>Your rights and contact</h2>
+    <p>
+      You can request access to, correction of or deletion of your data and you can object to
+      its use. To exercise any of these, or for any question about this policy, write to
+      <a href="mailto:legal@insightive.ltd">legal@insightive.ltd</a>. Insightive LLC-FZ,
+      Meydan Free Zone, Dubai, United Arab Emirates.
+    </p>
+  )}
+</Legal>

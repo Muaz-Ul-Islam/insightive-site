@@ -1,0 +1,206 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { fetchPage, fetchPosts, lexicalNodeToHtml } from '../../lib/payload';
+
+let pageData: any = null;
+let cmsPosts: any[] = [];
+try {
+  pageData = await fetchPage('insights');
+  cmsPosts = await fetchPosts();
+} catch (e) {
+  console.warn('[Insights Index Page] Failed to fetch insights data from Payload CMS, falling back to local content.', e);
+}
+
+// Map the dynamic or fallback posts
+const allLocal = await getCollection('insights', ({ data }) => import.meta.env.DEV || !data.draft);
+const essaysLocal = allLocal.sort((a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf());
+
+const essays = cmsPosts.length > 0
+  ? cmsPosts.map((p: any) => ({
+      id: p.slug,
+      slug: p.slug,
+      category: p.categories?.[0]?.title || 'Uncategorized',
+      title: p.title,
+      dek: p.dek,
+      byline: p.bylined ? (p.populatedAuthors?.[0]?.name || 'Insightive Software') : 'Insightive Software',
+      draft: p._status === 'draft',
+      publishDate: p.publishedAt ? new Date(p.publishedAt) : new Date(),
+    })).sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
+  : essaysLocal.map((e: any) => ({
+      id: e.id.replace(/\.md$/, ''),
+      slug: e.id.replace(/\.md$/, ''),
+      category: e.data.category,
+      title: e.data.title,
+      dek: e.data.dek,
+      byline: e.data.bylined ? e.data.author : 'Insightive Software',
+      draft: e.data.draft,
+      publishDate: e.data.publishDate,
+    }));
+
+// Categories list
+const categories = ['Ownership Economics', 'Process Fit', 'Decision Frameworks', 'Field Notes', 'Industry Deep Dives'];
+// Only show chips for categories that actually have essays in this view.
+const present = categories.filter((c) => essays.some((e) => e.category === c));
+
+// Fallback metadata
+const metaTitle = pageData?.meta?.title || pageData?.title || "Insights — The Economics of Software That Fits | Insightive";
+const metaDescription = pageData?.meta?.description || "Essays on the near-fit tax, ownership economics, process fit and the decision frameworks for build vs. buy, from operators who've built and exited.";
+
+const layout = pageData?.layout || [];
+const hasDynamicLayout = layout.length > 0;
+---
+
+<Base
+  title={metaTitle}
+  description={metaDescription}
+>
+  {hasDynamicLayout ? (
+    layout.map((block: any) => {
+      const { blockType } = block;
+
+      if (blockType === 'insightsHero') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em tick' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class="section">
+            <div class="container">
+              <p class="eyebrow">{block.eyebrow}</p>
+              {titleHtml ? (
+                <h1 set:html={titleHtml} />
+              ) : (
+                <h1>The argument, <span class="serif-em tick">essay by essay</span>.</h1>
+              )}
+              <p class="sub">{block.subtitle}</p>
+              <div class="cat-row" role="group" aria-label="Filter essays by category">
+                <button class="cat-chip active" data-filter="all" aria-pressed="true">All</button>
+                {present.map((c) => <button class="cat-chip" data-filter={c} aria-pressed="false">{c}</button>)}
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <!-- Fallback Static Hero -->
+    <section class="section">
+      <div class="container">
+        <p class="eyebrow">Insights</p>
+        <h1>The argument, <span class="serif-em tick">essay by essay</span>.</h1>
+        <p class="sub">
+          Ownership economics, process fit and the frameworks for deciding what to build,
+          written to be useful whether or not you ever work with us.
+        </p>
+        <div class="cat-row" role="group" aria-label="Filter essays by category">
+          <button class="cat-chip active" data-filter="all" aria-pressed="true">All</button>
+          {present.map((c) => <button class="cat-chip" data-filter={c} aria-pressed="false">{c}</button>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="container essay-grid">
+    {essays.map((e) => (
+      <a class="essay-card" data-category={e.category} href={`/insights/${e.slug}`}>
+        <p class="e-meta">
+          <span class="e-cat">{e.category}</span>
+          {e.draft && <span class="e-draft">Draft · pending review</span>}
+        </p>
+        <h2>{e.title}</h2>
+        <p class="e-dek">{e.dek}</p>
+        <p class="e-byline">{e.byline}</p>
+      </a>
+    ))}
+    <p class="no-match" hidden>No essays in this category yet.</p>
+  </section>
+</Base>
+
+<script>
+  const chips = Array.from(document.querySelectorAll('.cat-chip'));
+  const cards = Array.from(document.querySelectorAll('.essay-card'));
+  const empty = document.querySelector('.no-match');
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const filter = chip.getAttribute('data-filter');
+      chips.forEach((c) => {
+        const on = c === chip;
+        c.classList.toggle('active', on);
+        c.setAttribute('aria-pressed', String(on));
+      });
+      let shown = 0;
+      cards.forEach((card) => {
+        const show = filter === 'all' || card.getAttribute('data-category') === filter;
+        card.hidden = !show;
+        if (show) shown++;
+      });
+      if (empty) empty.hidden = shown !== 0;
+    });
+  });
+</script>
+
+<style>
+  section h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin: var(--s-4) 0; }
+  .sub { max-width: 54ch; font-size: var(--text-md); color: var(--ink-soft); }
+  .cat-row { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-5); }
+  .cat-chip {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--hairline);
+    padding: 6px 12px;
+    color: var(--ink-soft);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  }
+  .cat-chip:hover { border-color: var(--royal); color: var(--ink); }
+  .cat-chip.active {
+    background: var(--royal);
+    border-color: var(--royal);
+    color: var(--paper);
+  }
+  .no-match { grid-column: 1 / -1; color: var(--ink-mute); font-size: var(--text-md); }
+  .essay-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-4);
+    padding-bottom: var(--s-7);
+  }
+  .essay-card {
+    display: block;
+    text-decoration: none;
+    border: 1px solid var(--hairline);
+    padding: var(--s-5);
+    transition: border-color var(--t-fast) var(--ease);
+  }
+  .essay-card:hover { border-color: var(--royal); }
+  .e-meta {
+    display: flex;
+    gap: var(--s-3);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: var(--s-3);
+  }
+  .e-cat { color: var(--royal); }
+  .e-draft { color: var(--ink-mute); }
+  .essay-card h2 { font-size: var(--text-lg); margin-bottom: var(--s-2); }
+  .e-dek { color: var(--ink-soft); font-size: var(--text-base); }
+  .e-byline {
+    margin-top: var(--s-3);
+    font-size: var(--text-xs);
+    color: var(--ink-mute);
+  }
+  @media (max-width: 880px) {
+    .essay-grid { grid-template-columns: 1fr; }
+  }
+</style>

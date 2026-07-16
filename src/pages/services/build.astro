@@ -1,0 +1,450 @@
+---
+import Base from '../../layouts/Base.astro';
+import { fetchPage, lexicalNodeToHtml } from '../../lib/payload';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('services/build');
+  if (!pageData) {
+    pageData = await fetchPage('build');
+  }
+} catch (e) {
+  console.warn('[Build Page] Failed to fetch build page data from Payload CMS, using static fallback.', e);
+}
+
+// Fallback metadata
+const metaTitle = pageData?.meta?.title || pageData?.title || "Build — Process · System · Platform | Insightive";
+const metaDescription = pageData?.meta?.description || "Fit-built software at three scales: a single workflow in weeks, an operational system in months, or the platform your business runs on. Owned outright: code, data, roadmap.";
+
+const schema = [
+  {
+    '@type': 'Service',
+    name: 'Build — Process · System · Platform',
+    serviceType: 'Fit-Built Software Development',
+    provider: { '@type': 'Organization', name: 'Insightive Software', url: 'https://insightive.io' },
+    areaServed: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'United States', 'Canada'],
+    description:
+      'Fit-built software at three scales: Process (weeks), System (months), Platform (quarters). AI-augmented delivery, full ownership at handover.',
+  },
+  {
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What does "full ownership" include at handover?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The complete production codebase in your repositories, infrastructure in your cloud accounts, architecture documentation, QA test suites, deployment runbooks and knowledge transfer sessions. No licence fees, no per-user pricing, no dependency on Insightive to keep it running.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can custom-built software be affordable for mid-market companies?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'AI-augmented delivery: small senior teams orchestrate AI agents for volume work while keeping human judgment on decisions. This ships in months what traditionally took years, typically cheaper over five years than renting near-fit SaaS.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is a Process Build?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'A Process Build is a fit-built tool for a single workflow or team (typically replacing several stitched SaaS tools or a near-fit subscription) delivered in 2–8 weeks and owned outright.',
+        },
+      },
+    ],
+  },
+];
+
+const layout = pageData?.layout || [];
+const hasDynamicLayout = layout.length > 0;
+---
+
+<Base
+  title={metaTitle}
+  description={metaDescription}
+  schema={schema}
+>
+  {hasDynamicLayout ? (
+    layout.map((block: any) => {
+      const { blockType } = block;
+
+      if (blockType === 'heroBlock' || blockType === 'buildHero') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em tick' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        const ctaLabel = block.primaryCtaLabel || block.ctaLabel;
+        const ctaLink = block.primaryCtaLink || block.ctaLink;
+
+        return (
+          <section class="section build-hero">
+            <div class="container">
+              <p class="eyebrow">{block.eyebrow}</p>
+              {titleHtml ? (
+                <h1 set:html={titleHtml} />
+              ) : (
+                <h1>Sized by the misfit.<br /><span class="serif-em tick">Not by your company.</span></h1>
+              )}
+              <p class="sub">{block.subtitle}</p>
+              {ctaLabel && (
+                <a href={ctaLink || "/contact?service=build"} class="btn btn-primary">
+                  {ctaLabel}
+                </a>
+              )}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'buildScales') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class="section tinted">
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              {titleHtml && <h2 set:html={titleHtml} />}
+              <div class="scales">
+                {block.scales?.map((s: any) => (
+                  <article class="scale">
+                    <div class="scale-head">
+                      <span class="s-no">{s.no}</span>
+                      <h3>{s.name}</h3>
+                      <div class="s-meta">
+                        <span>{s.duration}</span>
+                        <span>{s.team}</span>
+                      </div>
+                    </div>
+                    <div class="scale-cols">
+                      <div>
+                        <p class="col-label">The misfit</p>
+                        <p>{s.misfit}</p>
+                      </div>
+                      <div>
+                        <p class="col-label">What you end with</p>
+                        <p>{s.outcome}</p>
+                      </div>
+                      <div>
+                        <p class="col-label">Examples</p>
+                        <ul>
+                          {s.examples?.map((e: any) => <li>{e.example}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {block.scalesNote && (
+                <p class="scales-note">{block.scalesNote}</p>
+              )}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionSteps') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class={`section ${block.darkBackground ? 'on-dark' : ''}`}>
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              {titleHtml && <h2 set:html={titleHtml} />}
+              <div class="phases">
+  {block.steps?.map((step: any) => (
+    <div class="phase">
+      <p class="phase-meta">{step.meta}</p>
+      <h3>{step.name}</h3>
+      <p>{step.body}</p>
+    </div>
+  ))}
+</div>
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'buildSplit') {
+        return (
+          <section class="section on-dark">
+            <div class="container split2">
+              {block.columns?.map((col: any) => {
+                const titleNode = col.title?.root;
+                let titleHtml = '';
+                if (titleNode) {
+                  const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+                  titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+                }
+
+                return (
+                  <div>
+                    {col.eyebrow && <p class="eyebrow">{col.eyebrow}</p>}
+                    {titleHtml && <h2 set:html={titleHtml} />}
+                    <p class="dark-body">{col.body}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionCta') {
+        return (
+          <section class="section">
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              <h2 set:html={block.title} />
+              <p class="cta-sub">{block.body}</p>
+              <a href={block.ctaLink} class="btn btn-primary">{block.ctaLabel}</a>
+            </div>
+          </section>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <!-- Fallback Static Layout -->
+    <!-- Hero -->
+    <section class="section build-hero">
+      <div class="container">
+        <p class="eyebrow">02 — Build</p>
+        <h1>Sized by the misfit.<br /><span class="serif-em tick">Not by your company.</span></h1>
+        <p class="sub">
+          Your business runs on software. Shouldn't the software fit the business? We build
+          what your process actually needs, at whichever scale it hurts: one workflow, one
+          system or the platform itself. Delivered in months, not years. Owned outright.
+        </p>
+        <a href="/contact?service=build" class="btn btn-primary">Book a Fit Assessment</a>
+      </div>
+    </section>
+
+    <!-- Scales -->
+    <section class="section tinted">
+      <div class="container">
+        <p class="eyebrow">Three scales</p>
+        <h2>Process. System. <span class="serif-em">Platform.</span></h2>
+        <div class="scales">
+          {[
+            {
+              no: 'I',
+              name: 'Process Build',
+              duration: '2–8 weeks',
+              team: '2–3 senior',
+              misfit:
+                'One workflow stitched across three to five tools. One team bending its process to a near-fit SaaS. The duct tape works, but somebody maintains it daily.',
+              outcome:
+                'One owned tool that replaces the stitch. The workflow runs the way the team actually works: no glue, no swivel-chair, no per-seat fees.',
+              examples: [
+                'Campaign operations tool replacing a five-tool marketing stitch',
+                'Sales pipeline shaped to how the team actually sells, not a CRM\'s object model',
+                'The operational spreadsheet layer, replaced by software that owns its data',
+              ],
+            },
+            {
+              no: 'II',
+              name: 'System Build',
+              duration: '2–6 months',
+              team: '3–5 senior',
+              misfit:
+                'An operational system that runs a department: rented, near-fit and taxing the operation every day it stays. The customisation quote rivals the cost of building.',
+              outcome:
+                'An owned system shaped to the department\'s real process. The operations tax drops in the first quarter.',
+              examples: [
+                'ATS processing thousands of CVs daily, integrated with your ERP',
+                'Order management, inventory orchestration, fulfilment routing, shaped to your flow',
+                'A painful SaaS tool replaced outright with a fit-built alternative you own',
+              ],
+            },
+            {
+              no: 'III',
+              name: 'Platform Build',
+              duration: '6–18 months',
+              team: '4–8 senior',
+              misfit:
+                'The platform the business runs on no longer matches the business. Every department has its workaround. The vendor\'s roadmap is not your roadmap.',
+              outcome:
+                'The platform your operation actually needs: multi-site, integrated, owned outright. Your roadmap, your data, your asset on the balance sheet.',
+              examples: [
+                'Property management platform built around your portfolio and tenants',
+                'ERP extension or replacement designed around your supply chain',
+                'Industry-vertical platform where no vendor fits your market',
+              ],
+            },
+          ].map((s) => (
+            <article class="scale">
+              <div class="scale-head">
+                <span class="s-no">{s.no}</span>
+                <h3>{s.name}</h3>
+                <div class="s-meta">
+                  <span>{s.duration}</span>
+                  <span>{s.team}</span>
+                </div>
+              </div>
+              <div class="scale-cols">
+                <div>
+                  <p class="col-label">The misfit</p>
+                  <p>{s.misfit}</p>
+                </div>
+                <div>
+                  <p class="col-label">What you end with</p>
+                  <p>{s.outcome}</p>
+                </div>
+                <div>
+                  <p class="col-label">Examples</p>
+                  <ul>
+                    {s.examples.map((e) => <li>{e}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p class="scales-note">
+          Not sure which scale you're at? That's exactly what the two-week
+          <strong>Fit Assessment</strong> answers, before you commit to anything.
+        </p>
+      </div>
+    </section>
+
+    <!-- Delivery -->
+    <section class="section">
+      <div class="container">
+        <p class="eyebrow">How we deliver</p>
+        <h2>Four phases. <span class="serif-em">No big-bang reveal.</span></h2>
+        <div class="phases">
+          {[
+            { name: 'Fit Assessment', time: '2 weeks', body: 'Discovery, scoping, architecture at proposal level. You get a written diagnosis whether or not we proceed.' },
+            { name: 'Design & Architecture', time: '2–4 weeks', body: 'Detailed technical design: a package you can review, approve or take elsewhere.' },
+            { name: 'Build', time: 'scale-dependent', body: 'Small senior AI-augmented team. Two-week sprints. Working software shipping every sprint, no big-bang reveal.' },
+            { name: 'Handover', time: '2–4 weeks', body: 'Code to your repositories, infrastructure to your cloud, documentation and knowledge transfer. Optional 3–6 month support tail.' },
+          ].map((p, i) => (
+            <div class="phase">
+              <p class="phase-meta">Phase {i + 1} · {p.time}</p>
+              <h3>{p.name}</h3>
+              <p>{p.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Team / ownership (dark) -->
+    <section class="section on-dark">
+      <div class="container split2">
+        <div>
+          <p class="eyebrow">The team model</p>
+          <h2>Small. Senior. <span class="serif-em">AI-augmented.</span></h2>
+          <p class="dark-body">
+            No junior army, no offshore pyramid. Every engineer is senior and orchestrates AI
+            agents daily: the agents handle the volume, the engineers handle the judgment.
+            That's where the timeline compression comes from and why a team of four ships
+            what bigger teams can't.
+          </p>
+        </div>
+        <div>
+          <p class="eyebrow">The handover</p>
+          <h2>Owned <span class="serif-em">outright</span>.</h2>
+          <p class="dark-body">
+            Code in your repositories. Infrastructure in your cloud. Documentation, test
+            suites, runbooks and knowledge transfer included. No licence fees, no per-user
+            pricing, no Insightive dependency. If we disappeared the day after handover,
+            your software wouldn't notice.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section">
+      <div class="container">
+        <h2>Start where it hurts.</h2>
+        <p class="cta-sub">
+          A Fit Assessment is two weeks: we map the misfit, price it and return a
+          recommendation you can act on, at whichever scale it lands.
+        </p>
+        <a href="/contact?service=build" class="btn btn-primary">Book a Fit Assessment</a>
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .build-hero h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin: var(--s-4) 0; }
+  .sub { max-width: 58ch; font-size: var(--text-md); color: var(--ink-soft); margin-bottom: var(--s-5); }
+  .tinted { background: var(--paper-tint); }
+  section h2 { font-size: var(--text-xl); margin-top: var(--s-3); }
+
+  .scales { margin-top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
+  .scale { border: 1px solid var(--hairline); background: var(--paper); padding: var(--s-5); }
+  .scale-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .s-no { font-family: var(--serif); font-style: italic; font-size: var(--text-lg); color: var(--royal); }
+  .scale-head h3 { font-size: var(--text-lg); }
+  .s-meta {
+    margin-left: auto;
+    display: flex;
+    gap: var(--s-3);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .scale-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--s-5); }
+  .col-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--royal);
+    margin-bottom: var(--s-2);
+  }
+  .scale-cols p:not(.col-label), .scale-cols li { font-size: var(--text-sm); color: var(--ink-soft); }
+  .scale-cols ul { padding-left: 1.1em; }
+  .scale-cols li { margin-bottom: var(--s-2); }
+  .scales-note { margin-top: var(--s-5); max-width: 58ch; font-size: var(--text-md); }
+
+  .phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-5); margin-top: var(--s-6); }
+  .phase-meta {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--royal);
+    margin-bottom: var(--s-3);
+  }
+  .phase h3 { font-size: var(--text-md); margin-bottom: var(--s-2); }
+  .phase p:not(.phase-meta) { font-size: var(--text-sm); color: var(--ink-soft); }
+
+  .split2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+  .dark-body { color: var(--soft-on-navy); margin-top: var(--s-4); max-width: 50ch; }
+
+  .cta-sub { max-width: 54ch; color: var(--ink-soft); margin: var(--s-3) 0 var(--s-5); font-size: var(--text-md); }
+
+  @media (max-width: 880px) {
+    .scale-cols, .phases, .split2 { grid-template-columns: 1fr; gap: var(--s-4); }
+    .s-meta { margin-left: 0; width: 100%; }
+  }
+</style>

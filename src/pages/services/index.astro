@@ -1,0 +1,232 @@
+---
+import Base from '../../layouts/Base.astro';
+import { fetchPage, lexicalNodeToHtml } from '../../lib/payload';
+
+const PAYLOAD_CMS_URL = import.meta.env.PAYLOAD_CMS_URL || import.meta.env.PUBLIC_PAYLOAD_URL || 'http://127.0.0.1:3000';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('services');
+} catch (e) {
+  console.warn('[Services Page] Failed to fetch services page data from Payload CMS, using static fallback.', e);
+}
+
+// Fallback metadata
+const metaTitle = pageData?.meta?.title || pageData?.title || "Services — Advisory & Build | Insightive";
+const metaDescription = pageData?.meta?.description || "Two services: Advisory (decide what fits: stay, extend or build) and Build (fit-built software at Process, System and Platform scale). Owned outright.";
+
+const layout = pageData?.layout || [];
+const hasDynamicLayout = layout.length > 0;
+---
+
+<Base
+  title={metaTitle}
+  description={metaDescription}
+>
+  {hasDynamicLayout ? (
+    layout.map((block: any) => {
+      const { blockType } = block;
+
+      if (blockType === 'heroBlock' || blockType === 'servicesHero') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em tick' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class="section svc-hero">
+            <div class="container">
+              <p class="eyebrow">{block.eyebrow || 'Our services'}</p>
+              {titleHtml ? (
+                <h1 set:html={titleHtml} />
+              ) : (
+                <h1>Two paths. <span class="serif-em tick">Both start here.</span></h1>
+              )}
+              <p class="sub">{block.subtitle}</p>
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'servicesPaths') {
+        return (
+          <section class="container paths">
+            {block.paths?.map((p: any) => {
+              const isAdvisory = p.ctaLink?.toLowerCase().includes('advisory') || p.label?.toLowerCase().includes('advisory');
+              return (
+                <a class="path-card" href={p.ctaLink}>
+                  <div class="svc-ico" aria-hidden="true">
+                    {p.icon?.url ? (
+                      <img
+                        src={p.icon.url.startsWith('http') ? p.icon.url : `${PAYLOAD_CMS_URL}${p.icon.url}`}
+                        alt={p.icon.alt || ""}
+                        loading="lazy"
+                      />
+                    ) : isAdvisory ? (
+                      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="16" r="3" stroke="currentColor" stroke-width="1"/>
+                        <circle cx="24" cy="8" r="3" stroke="currentColor" stroke-width="1"/>
+                        <circle cx="24" cy="24" r="3" stroke="currentColor" stroke-width="1"/>
+                        <line x1="11" y1="15" x2="21" y2="9" stroke="currentColor" stroke-width="1"/>
+                        <line x1="11" y1="17" x2="21" y2="23" stroke="currentColor" stroke-width="1"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="22" width="24" height="6" stroke="currentColor" stroke-width="1"/>
+                        <rect x="7" y="14" width="18" height="6" stroke="currentColor" stroke-width="1"/>
+                        <rect x="10" y="6" width="12" height="6" stroke="currentColor" stroke-width="1"/>
+                      </svg>
+                    )}
+                  </div>
+                  <p class="svc-label">{p.label}</p>
+                  <h2>{p.title}</h2>
+                  <p>{p.description}</p>
+                  <span class="svc-cta">{p.ctaLabel}</span>
+                </a>
+              );
+            })}
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionCta') {
+        return (
+          <section class="section">
+            <div class="container undecided">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              <h2 set:html={block.title} />
+              <p>{block.body}</p>
+              <a href={block.ctaLink} class="btn btn-primary">{block.ctaLabel}</a>
+            </div>
+          </section>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <!-- Fallback Static Layout -->
+    <section class="section svc-hero">
+      <div class="container">
+        <p class="eyebrow">Our services</p>
+        <h1>Two paths. <span class="serif-em tick">Both start here.</span></h1>
+        <p class="sub">
+          If you're still deciding what to fix, buy or build, start with Advisory.
+          If you know what needs to be built, start with Build. Both end the same way:
+          a decision or a system you own.
+        </p>
+      </div>
+    </section>
+
+    <section class="container paths">
+      <a class="path-card" href="/services/advisory">
+        <div class="svc-ico" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="16" r="3" stroke="currentColor" stroke-width="1"/>
+            <circle cx="24" cy="8" r="3" stroke="currentColor" stroke-width="1"/>
+            <circle cx="24" cy="24" r="3" stroke="currentColor" stroke-width="1"/>
+            <line x1="11" y1="15" x2="21" y2="9" stroke="currentColor" stroke-width="1"/>
+            <line x1="11" y1="17" x2="21" y2="23" stroke="currentColor" stroke-width="1"/>
+          </svg>
+        </div>
+        <p class="svc-label">01 — Advisory</p>
+        <h2>Decide what fits.</h2>
+        <p>
+          A two-to-four-week diagnosis of where your technology and your process diverge,
+          returned as one defensible call (stay, extend or build) with the financial model
+          your board can act on. Five domains. No platform allegiance. No implementation
+          hours to protect.
+        </p>
+        <span class="svc-cta">How Advisory works →</span>
+      </a>
+      <a class="path-card" href="/services/build">
+        <div class="svc-ico" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="22" width="24" height="6" stroke="currentColor" stroke-width="1"/>
+            <rect x="7" y="14" width="18" height="6" stroke="currentColor" stroke-width="1"/>
+            <rect x="10" y="6" width="12" height="6" stroke="currentColor" stroke-width="1"/>
+          </svg>
+        </div>
+        <p class="svc-label">02 — Build</p>
+        <h2>Process · System · Platform.</h2>
+        <p>
+          Fit-built software at three scales, from a single workflow tool in weeks to the
+          platform your business runs on. Small senior AI-augmented teams, working software
+          every two weeks and a total handover: code, data, infrastructure, documentation.
+        </p>
+        <span class="svc-cta">How Build works →</span>
+      </a>
+    </section>
+
+    <section class="section">
+      <div class="container undecided">
+        <h2>Not sure which way to go?</h2>
+        <p>
+          If you're still shaping the question, start with Advisory. We'll get you to the
+          answer. If you have the answer and need it built, start with Build. If you're truly
+          not sure, book a discovery call and we'll figure it out together.
+        </p>
+        <a href="/contact?service=advisory" class="btn btn-primary">Book a Discovery Call</a>
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .svc-hero { padding-bottom: var(--s-5); }
+  .svc-hero h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin: var(--s-4) 0; }
+  .sub { max-width: 54ch; font-size: var(--text-md); color: var(--ink-soft); }
+  .paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-4);
+  }
+  .path-card {
+    display: block;
+    text-decoration: none;
+    border: 1px solid var(--hairline);
+    padding: var(--s-6) var(--s-5);
+    transition: border-color var(--t-fast) var(--ease);
+  }
+  .path-card:hover { border-color: var(--royal); }
+  .svc-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--royal);
+    margin-bottom: var(--s-4);
+  }
+  .svc-ico {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--royal);
+    margin-bottom: var(--s-4);
+    flex-shrink: 0;
+    transition: border-color var(--t-fast) var(--ease);
+  }
+  .svc-ico svg { width: 20px; height: 20px; }
+  .svc-ico img { width: 20px; height: 20px; object-fit: contain; display: block; }
+  .path-card:hover .svc-ico { border-color: var(--royal); }
+  .path-card h2 { font-size: var(--text-xl); margin-bottom: var(--s-3); }
+  .path-card p:not(.svc-label) { color: var(--ink-soft); }
+  .svc-cta {
+    display: inline-block;
+    margin-top: var(--s-4);
+    font-weight: var(--w-medium);
+    font-size: var(--text-sm);
+    color: var(--royal);
+  }
+  .undecided { max-width: 60ch; }
+  .undecided h2 { font-size: var(--text-lg); margin-bottom: var(--s-3); }
+  .undecided p { color: var(--ink-soft); margin-bottom: var(--s-4); }
+  @media (max-width: 880px) {
+    .paths { grid-template-columns: 1fr; }
+  }
+</style>

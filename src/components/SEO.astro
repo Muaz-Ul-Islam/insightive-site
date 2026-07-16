@@ -1,0 +1,88 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  type?: 'website' | 'article';
+  schema?: Record<string, unknown>[];
+}
+const { title, description, type = 'website', schema = [] } = Astro.props;
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', Astro.site);
+const ogImage = new URL('/og-image.png', Astro.site);
+
+const isHome = Astro.url.pathname === '/' || Astro.url.pathname === '';
+const pathSegments = Astro.url.pathname.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+
+const organization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Insightive Software',
+  url: 'https://insightive.io',
+  logo: 'https://insightive.io/brand/mark-royal.svg',
+  description:
+    'Fit-built software engineered for how you work and handed over with full ownership. No licence tax, no vendor lock-in.',
+  address: { '@type': 'PostalAddress', addressLocality: 'Dubai', addressCountry: 'AE' },
+  areaServed: [
+    'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman',
+    'United States', 'Canada',
+  ],
+  sameAs: [
+    'https://www.linkedin.com/showcase/insightive-software',
+    'https://www.instagram.com/insightive.io/',
+    'https://www.facebook.com/insightivesoftware',
+  ],
+  parentOrganization: {
+    '@type': 'Organization',
+    name: 'Insightive',
+    legalName: 'Insightive L.L.C-FZ',
+    url: 'https://insightive.ltd',
+  },
+};
+
+const website = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Insightive Software',
+  url: 'https://insightive.io',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: 'https://insightive.io/insights?q={search_term_string}' },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const breadcrumb = pathSegments.length > 0 ? {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://insightive.io' },
+    ...pathSegments.map((seg: string, i: number) => ({
+      '@type': 'ListItem',
+      position: i + 2,
+      name: seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' '),
+      item: `https://insightive.io/${pathSegments.slice(0, i + 1).join('/')}`,
+    })),
+  ],
+} : null;
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonical} />
+<meta property="og:site_name" content="Insightive Software" />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<script type="application/ld+json" set:html={JSON.stringify(organization)} />
+{isHome && <script type="application/ld+json" set:html={JSON.stringify(website)} />}
+{!isHome && breadcrumb && <script type="application/ld+json" set:html={JSON.stringify(breadcrumb)} />}
+{schema.map((s) => <script type="application/ld+json" set:html={JSON.stringify({ '@context': 'https://schema.org', ...s })} />)}

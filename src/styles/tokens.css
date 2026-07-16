@@ -1,0 +1,73 @@
+/* ============================================================
+   Insightive Software — Design Tokens
+   Source: InsightiveRefinedBranding/asset-pack (Vol. II — Software)
+   Royal Blue primary · Cyan as verb · Deep Navy dark · Paper light
+   ============================================================ */
+
+:root {
+  /* ---- Color · brand ---- */
+  --royal: #0066CC;
+  --royal-deep: #004C99;       /* hover / pressed */
+  --royal-tint: #E5F0FA;       /* light blue wash, sparingly */
+  --cyan: #00FFFF;             /* VERB ONLY: emphasis, never fill */
+  --navy: #13141E;             /* dark surface */
+  --navy-raise: #1B1D2B;       /* raised card on navy */
+  --paper: #FAFAFA;
+  --paper-tint: #F5F4EF;       /* warm editorial paper */
+
+  /* ---- Color · ink on paper ---- */
+  --ink: #14151A;
+  --ink-soft: #45474F;
+  --ink-mute: #76787F;
+  --hairline: #E3E2DD;         /* rules on paper */
+
+  /* ---- Color · ink on navy ---- */
+  --paper-on-navy: #F2F2F0;
+  --soft-on-navy: #A6A8B3;
+  --hairline-on-navy: #2A2C3A;
+
+  /* ---- Semantic ---- */
+  --bg: var(--paper);
+  --fg: var(--ink);
+  --accent: var(--royal);
+
+  /* ---- Type families ---- */
+  --sans: 'TSSAFAA', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* ---- Type scale (fluid) ---- */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1.0625rem;
+  --text-md: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-lg: clamp(1.375rem, 1.15rem + 1vw, 1.875rem);
+  --text-xl: clamp(1.75rem, 1.3rem + 2vw, 2.75rem);
+  --text-2xl: clamp(2.25rem, 1.6rem + 3.2vw, 4rem);
+  --text-hero: clamp(2.75rem, 1.8rem + 4.5vw, 5.25rem);
+
+  /* ---- Weights ---- */
+  --w-light: 300;
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-bold: 700;
+
+  /* ---- Spacing (4pt base) ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 16px;
+  --s-4: 24px;
+  --s-5: 40px;
+  --s-6: 64px;
+  --s-7: 96px;
+  --s-8: 144px;
+
+  /* ---- Layout ---- */
+  --max-w: 1200px;
+  --max-w-prose: 68ch;
+  --gutter: clamp(20px, 4vw, 48px);
+
+  /* ---- Motion: budget = subtle, no theater ---- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 160ms;
+}
