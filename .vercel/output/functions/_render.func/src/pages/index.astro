@@ -1,0 +1,589 @@
+---
+import Base from '../layouts/Base.astro';
+import { fetchPage, lexicalNodeToHtml } from '../lib/payload';
+
+const PAYLOAD_CMS_URL = import.meta.env.PAYLOAD_CMS_URL || import.meta.env.PUBLIC_PAYLOAD_URL || 'http://127.0.0.1:3000';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('home');
+} catch (e) {
+  console.warn('[Home Page] Failed to fetch home page data from Payload CMS, using static fallback.', e);
+}
+
+const metaTitle = pageData?.meta?.title || pageData?.title || "Software That Fits. Software You Own. | Insightive";
+const metaDescription = pageData?.meta?.description || "Fit-built software engineered for how you work and handed over with full ownership. Advisory and Build, from a single process to the platform your business runs on.";
+
+const layout = pageData?.layout || [];
+const hasDynamicLayout = layout.length > 0;
+
+const scales = [
+  {
+    no: 'I',
+    name: 'Process Build',
+    misfit: 'One workflow stitched across three, four, five tools. One team bending its process to a near-fit SaaS.',
+    example: 'A campaign ops tool that replaces the five-tool stitch. A pipeline shaped to how your sales team actually sells.',
+    duration: '2–8 weeks',
+  },
+  {
+    no: 'II',
+    name: 'System Build',
+    misfit: 'An operational system that runs a department: rented, near-fit and taxing every day it stays.',
+    example: 'An ATS processing thousands of CVs daily, integrated with your ERP. Order management shaped to your fulfilment.',
+    duration: '2–6 months',
+  },
+  {
+    no: 'III',
+    name: 'Platform Build',
+    misfit: 'The platform the business runs on. The customisation quote on your desk has seven figures on it.',
+    example: 'A property management platform built around your portfolio. An ERP replacement that finally matches the operation.',
+    duration: '6–18 months',
+  },
+];
+---
+
+<Base
+  title={metaTitle}
+  description={metaDescription}
+>
+  {hasDynamicLayout ? (
+    layout.map((block: any) => {
+      const { blockType } = block;
+
+      if (blockType === 'heroBlock' || blockType === 'homeHero') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class="on-dark hero">
+            <div class="container">
+              <p class="eyebrow fade-up">{block.eyebrow || 'Fit-built software · No lock-in'}</p>
+              {titleHtml ? (
+                <h1 class="fade-up" set:html={titleHtml} />
+              ) : (
+                <h1 class="fade-up">
+                  Software that <span class="serif-em">fits</span>.<br />
+                  Software you <span class="serif-em tick">own</span>.
+                </h1>
+              )}
+              <p class="lede fade-up">{block.subtitle || block.lede}</p>
+              <div class="hero-ctas fade-up">
+                <a href={block.primaryCtaLink || "/contact?service=build"} class="btn btn-primary">
+                  {block.primaryCtaLabel || "Book a Fit Assessment"}
+                </a>
+                <a href={block.secondaryCtaLink || "/thesis"} class="btn btn-ghost">
+                  {block.secondaryCtaLabel || "Read the Thesis"}
+                </a>
+              </div>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+              <span class="blk b1" style="--dx:-26px;--dy:-22px;--d:0s"></span>
+              <span class="blk b2" style="--dx:30px;--dy:-24px;--d:.08s"></span>
+              <span class="blk b3" style="--dx:34px;--dy:6px;--d:.16s"></span>
+              <span class="blk b4" style="--dx:-26px;--dy:26px;--d:.12s"></span>
+              <span class="blk b5 cyan" style="--dx:4px;--dy:34px;--d:.2s"></span>
+              <span class="blk b6" style="--dx:30px;--dy:26px;--d:.24s"></span>
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'editorialSplit') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode);
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+        const contentHtml = block.content?.root ? lexicalNodeToHtml(block.content.root) : '';
+
+        return (
+          <section class={`section ${block.tinted ? 'tinted' : ''}`}>
+            <div class="container split">
+              <div class="split-head">
+                <p class="eyebrow">{block.eyebrow}</p>
+                {titleHtml && <h2 set:html={titleHtml} />}
+                {block.desc && (
+                  <p class="section-sub">{block.desc}</p>
+                )}
+              </div>
+              <div class="split-body">
+                {contentHtml && <div class="editorial-content"  set:html={contentHtml} />}
+                {block.ctaLink && (
+                  <a href={block.ctaLink} class="link-quiet">{block.ctaLabel} →</a>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+     if (blockType === 'homeScales') {
+  const titleNode = block.title?.root;
+  let titleHtml = '';
+
+  if (titleNode) {
+    const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+    titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+  }
+
+  return (
+    <section class="section spectrum">
+      <div class="container">
+        {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+        {titleHtml && <h2 set:html={titleHtml} />}
+
+        {block.desc && (
+          <p class="section-sub">{block.desc}</p>
+        )}
+
+        <div class="scale-grid fade-up">
+          {block.scales?.map((s: any) => (
+            <article class="scale-card">
+              <div class="scale-top">
+                <span class="scale-no">{s.no}</span>
+                <span class="scale-duration">{s.duration}</span>
+              </div>
+
+              <h3>{s.name}</h3>
+              <p class="scale-misfit">{s.misfit}</p>
+
+              <hr class="rule" />
+
+              <p class="scale-example">{s.example}</p>
+            </article>
+          ))}
+        </div>
+
+        {block.note?.root && (
+          <p
+            class="spectrum-note"
+            set:html={lexicalNodeToHtml(block.note.root)}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+      if (blockType === 'homeServices') {
+        return (
+          <section class="section">
+            <div class="container">
+              <p class="eyebrow">{block.eyebrow || 'What we do'}</p>
+              <h2>{block.title || 'Two services. One belief: software must fit.'}</h2>
+              <p class="svc-principle">{block.principle}</p>
+              <div class="svc-grid fade-up">
+                {block.paths?.map((p: any) => (
+  <a class="svc-card" href={p.ctaLink}>
+    <div class="svc-ico">
+      {p.icon?.url && (
+        <img
+      src={p.icon.url.startsWith('http') ? p.icon.url : `${PAYLOAD_CMS_URL}${p.icon.url}`}
+      alt={p.icon.alt || ""}
+      loading="lazy"
+    />
+      )}
+    </div>
+
+    <p class="svc-label">{p.label}</p>
+    <h3>{p.title}</h3>
+    <p>{p.description}</p>
+    <span class="svc-cta">{p.ctaLabel}</span>
+  </a>
+))}
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionCta') {
+        return (
+          <section class="on-dark section closer">
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              <h2 set:html={block.title} />
+              <p class="closer-sub">{block.body}</p>
+              <a href={block.ctaLink} class="btn btn-primary">{block.ctaLabel}</a>
+            </div>
+          </section>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <>
+      <!-- ============ STATIC FALLBACK ============ -->
+      <!-- ============ HERO (dark) ============ -->
+      <section class="on-dark hero">
+        <div class="container">
+          <p class="eyebrow fade-up">Fit-built software · No lock-in</p>
+          <h1 class="fade-up">
+            Software that <span class="serif-em">fits</span>.<br />
+            Software you <span class="serif-em tick">own</span>.
+          </h1>
+          <p class="lede fade-up">
+            We don't adapt your business to off-the-shelf tools. We build software engineered
+            precisely for how you work and hand it over with full ownership. No licence tax.
+            No dependency on us to keep it running.
+          </p>
+          <div class="hero-ctas fade-up">
+            <a href="/contact?service=build" class="btn btn-primary">Book a Fit Assessment</a>
+            <a href="/thesis" class="btn btn-ghost">Read the Thesis</a>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="blk b1" style="--dx:-26px;--dy:-22px;--d:0s"></span>
+          <span class="blk b2" style="--dx:30px;--dy:-24px;--d:.08s"></span>
+          <span class="blk b3" style="--dx:34px;--dy:6px;--d:.16s"></span>
+          <span class="blk b4" style="--dx:-26px;--dy:26px;--d:.12s"></span>
+          <span class="blk b5 cyan" style="--dx:4px;--dy:34px;--d:.2s"></span>
+          <span class="blk b6" style="--dx:30px;--dy:26px;--d:.24s"></span>
+        </div>
+      </section>
+
+      <!-- ============ THE NEAR-FIT TAX ============ -->
+      <section class="section">
+        <div class="container split">
+          <div class="split-head">
+            <p class="eyebrow">The problem</p>
+            <h2>You're paying a tax you've stopped noticing.</h2>
+          </div>
+          <div class="split-body">
+            <p>
+              It rarely looks like a software problem. It looks like a sales team contorting its
+              pipeline into a CRM's objects. A marketing team running one campaign across five
+              subscriptions and three automation glues. A spreadsheet layer quietly patching the
+              gaps between systems, maintained by the one person who understands it.
+            </p>
+            <p>
+              We call it <strong>the near-fit tax</strong>: the recurring cost (in hours, errors,
+              workarounds and licence fees) of running your business on software that almost
+              fits. It compounds. And because it arrives as a hundred small workarounds rather
+              than one invoice, it never gets challenged.
+            </p>
+            <p>
+              The disease is the same at every scale: <em>process bending to software</em>.
+              So is the cure.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SPECTRUM ============ -->
+      <section class="section spectrum">
+        <div class="container">
+          <p class="eyebrow">The cure, at every scale</p>
+          <h2>Process. System. <span class="serif-em">Platform.</span></h2>
+          <p class="section-sub">
+            Fit-built software isn't only the million-dollar replatform. It starts wherever the
+            misfit hurts most and it's sized by the problem, not by your company.
+          </p>
+          <div class="scale-grid fade-up">
+            {scales.map((s) => (
+              <article class="scale-card">
+                <div class="scale-top">
+                  <span class="scale-no">{s.no}</span>
+                  <span class="scale-duration">{s.duration}</span>
+                </div>
+                <h3>{s.name}</h3>
+                <p class="scale-misfit">{s.misfit}</p>
+                <hr class="rule" />
+                <p class="scale-example">{s.example}</p>
+              </article>
+            ))}
+          </div>
+          <p class="spectrum-note">
+            Every build, at every scale, ends the same way: code, data, infrastructure and
+            documentation handed over. <span class="tick">Owned outright.</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ WHY NOW (tinted) ============ -->
+      <section class="section tinted">
+        <div class="container split">
+          <div class="split-head">
+            <p class="eyebrow">Why now</p>
+            <h2>The economics of fit just changed.</h2>
+          </div>
+          <div class="split-body">
+            <p>
+              For twenty years, software built to fit was a rich company's privilege. Off-the-shelf
+              solved the common 80% at a fraction of the cost; bespoke was reserved for enterprises
+              with IT budgets in the tens of millions.
+            </p>
+            <p>
+              AI-augmented delivery broke that math. Small senior teams now ship in months what
+              traditionally took years. The build that was out of reach on a mid-market budget in
+              2022 is, in 2026, cheaper than five years of renting a near-fit.
+            </p>
+            <blockquote>
+              The question is no longer "can we afford to build?" It's "can we afford not to own?"
+            </blockquote>
+            <a href="/thesis" class="link-quiet">The full argument, in the Thesis →</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SERVICES ============ -->
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">What we do</p>
+          <h2>Two services. One belief: <span class="serif-em">software must fit.</span></h2>
+          <p class="svc-principle">
+            We sell no software and carry no vendor margin. Either we help you decide
+            or we build what you'll own. Nothing in between.
+          </p>
+          <div class="svc-grid fade-up">
+            <a class="svc-card" href="/services/advisory">
+              <div class="svc-ico" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="16" r="3" stroke="currentColor" stroke-width="1"/><circle cx="24" cy="8" r="3" stroke="currentColor" stroke-width="1"/><circle cx="24" cy="24" r="3" stroke="currentColor" stroke-width="1"/><line x1="11" y1="15" x2="21" y2="9" stroke="currentColor" stroke-width="1"/><line x1="11" y1="17" x2="21" y2="23" stroke="currentColor" stroke-width="1"/></svg></div>
+              <p class="svc-label">01 — Advisory</p>
+              <h3>Decide what fits.</h3>
+              <p>
+                Before you commit to the wrong platform (or the wrong build) we map where your
+                technology and your process diverge and return one defensible call: stay, extend
+                or build. With numbers your board can act on. No platform allegiance.
+              </p>
+              <span class="svc-cta">How Advisory works →</span>
+            </a>
+            <a class="svc-card" href="/services/build">
+              <div class="svc-ico" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="22" width="24" height="6" stroke="currentColor" stroke-width="1"/><rect x="7" y="14" width="18" height="6" stroke="currentColor" stroke-width="1"/><rect x="10" y="6" width="12" height="6" stroke="currentColor" stroke-width="1"/></svg></div>
+              <p class="svc-label">02 — Build</p>
+              <h3>Process · System · Platform.</h3>
+              <p>
+                Small, senior, AI-augmented teams build the software your process actually needs,
+                from a single workflow tool in weeks to the platform your business runs on. Working
+                software every two weeks. Full handover at the end.
+              </p>
+              <span class="svc-cta">How Build works →</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CLOSING CTA (dark) ============ -->
+      <section class="on-dark section closer">
+        <div class="container">
+          <h2>Stop renting software that <span class="serif-em">almost</span> fits.</h2>
+          <p class="closer-sub">
+            A Fit Assessment is a focused two-week engagement: we map what you have, diagnose
+            what's broken and return a recommendation you can defend, whether or not you
+            build with us.
+          </p>
+          <a href="/contact?service=build" class="btn btn-primary">Book a Fit Assessment</a>
+        </div>
+      </section>
+    </>
+  )}
+</Base>
+
+<style>
+.editorial-content :global(img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}
+  /* ---- Hero ---- */
+  .hero {
+    padding-block: var(--s-8) var(--s-7);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero .container { position: relative; z-index: 1; }
+  /* Right-side "blocks fitting" motif — occupies the space the old grid used. */
+  .hero-art {
+    position: absolute;
+    right: 6%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 360px;
+    height: 280px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-art .blk {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid rgba(166, 168, 179, 0.28);
+  }
+  .hero-art .b1 { left: 0; top: 0; width: 200px; height: 150px; }
+  .hero-art .b2 { left: 200px; top: 0; width: 160px; height: 95px; }
+  .hero-art .b3 { left: 200px; top: 95px; width: 160px; height: 90px; }
+  .hero-art .b4 { left: 0; top: 150px; width: 120px; height: 130px; }
+  .hero-art .b5 { left: 120px; top: 150px; width: 80px; height: 130px; }
+  .hero-art .b6 { left: 200px; top: 185px; width: 160px; height: 95px; }
+  .hero-art .cyan { border-color: rgba(0, 255, 255, 0.55); background: rgba(0, 255, 255, 0.07); }
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .hero-art .blk {
+      opacity: 0;
+      transform: translate(var(--dx), var(--dy));
+      transition: transform 1s var(--ease) var(--d), opacity 0.8s ease var(--d);
+    }
+    html.js .hero-art.is-visible .blk { opacity: 1; transform: none; }
+  }
+  @media (max-width: 980px) { .hero-art { display: none; } }
+  .hero h1 {
+    font-size: var(--text-hero);
+    font-weight: var(--w-light);
+    max-width: 14ch;
+    margin: var(--s-4) 0;
+  }
+  .hero .lede {
+    max-width: 52ch;
+    font-size: var(--text-md);
+    color: var(--soft-on-navy);
+    margin-bottom: var(--s-5);
+  }
+  .hero-ctas { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+
+  /* ---- Split sections (asymmetric editorial) ---- */
+  .split {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: var(--s-6);
+  }
+  .split-head h2 { font-size: var(--text-xl); margin-top: var(--s-3); max-width: 16ch; }
+  .split-body { max-width: var(--max-w-prose); font-size: var(--text-md); }
+  .split-body p + p { margin-top: 1.3em; }
+  .split-body blockquote {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: var(--text-lg);
+    line-height: 1.35;
+    margin: 1.4em 0;
+    padding-left: var(--s-4);
+    border-left: 2px solid var(--royal);
+  }
+  .split-body .link-quiet { display: inline-block; margin-top: var(--s-2); font-weight: var(--w-medium); }
+
+  /* ---- Spectrum ---- */
+  .spectrum h2 { font-size: var(--text-xl); margin-top: var(--s-3); }
+  .section-sub { max-width: 56ch; color: var(--ink-soft); margin-top: var(--s-3); font-size: var(--text-md); }
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: var(--s-6);
+    border: 1px solid var(--hairline);
+  }
+  .scale-card {
+    padding: var(--s-5);
+    border-right: 1px solid var(--hairline);
+  }
+  .scale-card:last-child { border-right: 0; }
+  .scale-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--s-4);
+  }
+  .scale-no {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: var(--text-lg);
+    color: var(--royal);
+  }
+  .scale-duration {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .scale-card h3 { font-size: var(--text-lg); margin-bottom: var(--s-3); }
+  .scale-misfit { color: var(--ink-soft); font-size: var(--text-sm); margin-bottom: var(--s-4); }
+  .scale-card .rule { margin-bottom: var(--s-4); }
+  .scale-example { font-size: var(--text-sm); color: var(--ink-mute); }
+  .spectrum-note {
+    margin-top: var(--s-5);
+    font-size: var(--text-md);
+    max-width: 60ch;
+  }
+
+  /* ---- Tinted ---- */
+  .tinted { background: var(--paper-tint); }
+
+  /* ---- Services ---- */
+  .svc-principle {
+    max-width: 54ch;
+    color: var(--ink-soft);
+    font-size: var(--text-md);
+    margin-top: var(--s-3);
+  }
+  .svc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-4);
+    margin-top: var(--s-6);
+  }
+  .svc-card {
+    display: block;
+    text-decoration: none;
+    border: 1px solid var(--hairline);
+    padding: var(--s-5);
+    transition: border-color var(--t-fast) var(--ease);
+  }
+  .svc-card:hover { border-color: var(--royal); }
+  .svc-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--royal);
+    margin-bottom: var(--s-4);
+  }
+  .svc-ico {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--royal);
+    margin-bottom: var(--s-4);
+    flex-shrink: 0;
+    transition: border-color var(--t-fast) var(--ease);
+  }
+  .svc-ico img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+  .svc-card:hover .svc-ico { border-color: var(--royal); }
+  .svc-card h3 { font-size: var(--text-lg); margin-bottom: var(--s-3); }
+  .svc-card p:not(.svc-label) { color: var(--ink-soft); font-size: var(--text-base); }
+  .svc-cta {
+    display: inline-block;
+    margin-top: var(--s-4);
+    font-weight: var(--w-medium);
+    font-size: var(--text-sm);
+    color: var(--royal);
+  }
+
+  /* ---- Closer ---- */
+  .closer { text-align: left; }
+  .closer h2 { font-size: var(--text-xl); max-width: 18ch; }
+  .closer-sub {
+    color: var(--soft-on-navy);
+    max-width: 54ch;
+    margin: var(--s-4) 0 var(--s-5);
+    font-size: var(--text-md);
+  }
+
+  @media (max-width: 880px) {
+    .split { grid-template-columns: 1fr; gap: var(--s-4); }
+    .scale-grid { grid-template-columns: 1fr; }
+    .scale-card { border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .scale-card:last-child { border-bottom: 0; }
+    .svc-grid { grid-template-columns: 1fr; }
+  }
+</style>

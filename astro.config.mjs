@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
+import vercel from '@astrojs/vercel';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -38,7 +39,8 @@ function seoMeta(p) {
 // https://astro.build/config
 export default defineConfig({
   site: 'https://insightive.io',
-  output: 'static',
+  output: 'server',
+  adapter: vercel(),
   trailingSlash: 'never',
   integrations: [
     react(),

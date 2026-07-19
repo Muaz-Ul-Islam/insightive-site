@@ -1,0 +1,468 @@
+---
+import Base from '../../layouts/Base.astro';
+import { partners } from '../../data/partners.js';
+import { fetchPage, lexicalNodeToHtml } from '../../lib/payload';
+
+const PAYLOAD_CMS_URL = import.meta.env.PAYLOAD_CMS_URL || import.meta.env.PUBLIC_PAYLOAD_URL || 'http://127.0.0.1:3000';
+
+let pageData: any = null;
+try {
+  pageData = await fetchPage('services/advisory');
+  if (!pageData) {
+    pageData = await fetchPage('advisory');
+  }
+} catch (e) {
+  console.warn('[Advisory Page] Failed to fetch advisory page data from Payload CMS, using static fallback.', e);
+}
+
+// Fallback metadata
+const metaTitle = pageData?.meta?.title || pageData?.title || "Advisory — Decide What Fits | Insightive";
+const metaDescription = pageData?.meta?.description || "Vendor-neutral advisory for operators and boards. One defensible recommendation (stay, extend or build) backed by numbers. No platforms to sell.";
+
+const schema = [
+  {
+    '@type': 'Service',
+    name: 'Advisory',
+    serviceType: 'Technology Strategy & Advisory',
+    provider: { '@type': 'Organization', name: 'Insightive Software', url: 'https://insightive.io' },
+    areaServed: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'United States', 'Canada'],
+    description:
+      'Vendor-neutral technology advisory: one defensible recommendation (stay, extend or build) backed by a financial model.',
+  },
+  {
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What does a technology advisory engagement deliver?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'A written recommendation (stay, extend or build) backed by a TCO and ROI model over 3- and 5-year horizons, a roadmap if the answer is build or extend, plus an AI opportunity note. Defensible to a board or PE sponsor.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How long does the diagnosis take?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Diagnose runs 1–4 weeks (stakeholder interviews, systems inventory, real cost analysis). Decide takes a further 1–2 weeks and ends with the written recommendation.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Are you tied to any platform or vendor?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'No. We have no platform allegiance and no implementation hours to protect. When the right answer is to stay on your current stack, that is the recommendation you get.',
+        },
+      },
+    ],
+  },
+];
+
+const layout = pageData?.layout || [];
+const hasDynamicLayout = layout.length > 0;
+---
+
+<Base
+  title={metaTitle}
+  description={metaDescription}
+  schema={schema}
+>
+  {hasDynamicLayout ? (
+    layout.map((block: any) => {
+      const { blockType } = block;
+
+      if (blockType === 'heroBlock' || blockType === 'advisoryHero') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em tick' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        const ctaLabel = block.primaryCtaLabel || block.ctaLabel;
+        const ctaLink = block.primaryCtaLink || block.ctaLink;
+
+        return (
+          <section class="section adv-hero">
+            <div class="container">
+              <p class="eyebrow">{block.eyebrow}</p>
+              {titleHtml ? (
+                <h1 set:html={titleHtml} />
+              ) : (
+                <h1>Decide what <span class="serif-em tick">fits</span>.</h1>
+              )}
+              <p class="sub">{block.subtitle}</p>
+              {ctaLabel && (
+                <a href={ctaLink || "/contact?service=advisory"} class="btn btn-primary">
+                  {ctaLabel}
+                </a>
+              )}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionProse') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class={`section ${block.tinted ? 'tinted' : ''}`}>
+            <div class="container prose-wrap">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              {titleHtml && <h2 set:html={titleHtml} />}
+              <div class="prose">
+                <div set:html={lexicalNodeToHtml(block.content?.root)} />
+              </div>
+              {block.ctaLabel && (
+                <a href={block.ctaLink || "/contact?service=advisory"} class="btn btn-primary">
+                  {block.ctaLabel}
+                </a>
+              )}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'advisoryDomains') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class="section">
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              {titleHtml && <h2 set:html={titleHtml} />}
+              <div class="domain-list">
+                {block.domains?.map((d: any, i: number) => (
+                  <div class="domain">
+                    <span class="d-no">{String(i + 1).padStart(2, '0')}</span>
+                    <div>
+                      <h3>{d.name}</h3>
+                      <p>{d.body}</p>
+                      {d.partners && d.partners.length > 0 ? (
+                        <div class="d-partners">
+                          <span class="d-partners-label">Delivered with</span>
+                          {d.partners.map((p: any) => {
+                            const partnerObj = typeof p === 'object' ? p : null;
+                            if (!partnerObj) return null;
+                            
+                            const pId = partnerObj.slug || partnerObj.id;
+                            const pLogo = partnerObj.logo?.url 
+                              ? (partnerObj.logo.url.startsWith('/') ? `${PAYLOAD_CMS_URL}${partnerObj.logo.url}` : partnerObj.logo.url)
+                              : null;
+                            const logoReady = partnerObj.logoReady ?? false;
+                            
+                            return (
+                              <a class="plogo" href={`/partners#${pId}`} aria-label={`${partnerObj.name}: ${partnerObj.capability}. See on the partners page.`}>
+                                {logoReady && pLogo ? <img src={pLogo} alt={`${partnerObj.name} logo`} loading="lazy" decoding="async" /> : partnerObj.name}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        partners.filter((p) => p.domain === d.name).length > 0 && (
+                          <div class="d-partners">
+                            <span class="d-partners-label">Delivered with</span>
+                            {partners.filter((p) => p.domain === d.name).map((p) => (
+                              <a class="plogo" href={`/partners#${p.id}`} aria-label={`${p.name}: ${p.capability}. See on the partners page.`}>
+                                {p.logoReady ? <img src={p.logo} alt={`${p.name} logo`} loading="lazy" decoding="async" /> : p.name}
+                              </a>
+                            ))}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {block.boundaryNote && (
+                <p class="boundary">{block.boundaryNote}</p>
+              )}
+            </div>
+          </section>
+        );
+      }
+
+      if (blockType === 'sectionSteps') {
+        const titleNode = block.title?.root;
+        let titleHtml = '';
+        if (titleNode) {
+          const parsed = lexicalNodeToHtml(titleNode, { italicClass: 'serif-em' });
+          titleHtml = parsed.replace(/^<[a-zA-Z0-9]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+        }
+
+        return (
+          <section class={`section ${block.darkBackground ? 'on-dark' : ''}`}>
+            <div class="container">
+              {block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+              {titleHtml && <h2 set:html={titleHtml} />}
+              <div class="steps">
+                {block.steps?.map((step: any) => (
+                  <div class="step">
+                    <p class="step-meta">{step.meta}</p>
+                    <h3>{step.name}</h3>
+                    <p>{step.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <!-- Fallback Static Layout -->
+    <!-- Hero -->
+    <section class="section adv-hero">
+      <div class="container">
+        <p class="eyebrow">01 — Advisory</p>
+        <h1>Decide what <span class="serif-em tick">fits</span>.</h1>
+        <p class="sub">
+          Get the defensible answer before you commit to the wrong platform or the wrong
+          build. We map where your technology is breaking down, diagnose fit-to-process and
+          return the call: <strong>stay, extend or build</strong>, with the numbers your
+          board can act on. No platform allegiance. No implementation hours to protect.
+        </p>
+        <a href="/contact?service=advisory" class="btn btn-primary">Book a Discovery Call</a>
+      </div>
+    </section>
+
+    <!-- The appeal -->
+    <section class="section tinted">
+      <div class="container prose-wrap">
+        <p class="eyebrow">Why this exists</p>
+        <h2>Most technology decisions are made with a vendor in the room.</h2>
+        <div class="prose">
+          <p>
+            The platform vendor has a licence to sell. The implementation partner has hours to
+            bill. The internal champion has a preference to defend. What's missing is the party
+            whose only deliverable is the right answer.
+          </p>
+          <p>
+            That's the role we take. The engagement ends with a written recommendation you can
+            defend to a board, a sponsor or yourself, plus four honest exits: act on the
+            document alone, transition into a Build, keep us on as advisor, or get referred to
+            the right partner when the scope sits outside our depth.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Domains -->
+    <section class="section">
+      <div class="container">
+        <p class="eyebrow">What we advise on</p>
+        <h2>Six domains. <span class="serif-em">Deliberately narrow.</span></h2>
+        <div class="domain-list">
+          {[
+            {
+              name: 'Software & Platform Strategy',
+              body: 'Build vs buy. Stack rationalisation. Architecture decisions. Platform replacement assessments. Technical debt audits.',
+            },
+            {
+              name: 'Process Fit Diagnosis',
+              body: 'Where your teams bend to their tools: the CRM contortions, the five-tool stitches, the spreadsheet layer. We price the misfit and name the fix.',
+            },
+            {
+              name: 'AI Strategy & Opportunity Assessment',
+              body: 'Where AI actually belongs in your business. What to build AI-native, what to add AI to later, what to leave alone. The honest answer.',
+            },
+            {
+              name: 'Technology Due Diligence',
+              body: 'For PE firms, boards and investors evaluating technology in an acquisition, investment or roll-up. Independent, fast, defensible.',
+            },
+            {
+              name: 'Commerce Ecosystem Strategy',
+              body: 'Stack audits and architecture for D2C and mid-market commerce operators: Shopify, 3PL, analytics, attribution. Implementation, where needed, runs through named partners; we stay on the architecture and the assessment.',
+            },
+            {
+              name: 'Marketing, Brand & Automation Strategy',
+              body: 'CRM, email, attribution, automation. Where HubSpot or Klaviyo is the right call and where a bespoke stack makes more sense.',
+            },
+          ].map((d, i) => (
+            <div class="domain">
+              <span class="d-no">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{d.name}</h3>
+                <p>{d.body}</p>
+                {partners.filter((p) => p.domain === d.name).length > 0 && (
+                  <div class="d-partners">
+                    <span class="d-partners-label">Delivered with</span>
+                    {partners.filter((p) => p.domain === d.name).map((p) => (
+                      <a class="plogo" href={`/partners#${p.id}`} aria-label={`${p.name}: ${p.capability}. See on the partners page.`}>
+                        {p.logoReady ? <img src={p.logo} alt={`${p.name} logo`} loading="lazy" decoding="async" /> : p.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="boundary">
+          We don't advise on ERP back-office beyond our platform expertise, HR or real-estate
+          systems beyond software selection, or generic "digital transformation roadmaps."
+          When your question sits outside these six domains, we say so and refer you well.
+        </p>
+      </div>
+    </section>
+
+    <!-- Partner model -->
+    <section class="section tinted">
+      <div class="container prose-wrap">
+        <p class="eyebrow">How delivery works</p>
+        <h2>We sell no software. We advise <span class="serif-em">or we build.</span></h2>
+        <div class="prose">
+          <p>
+            When an advisory engagement ends in <strong>software to be built</strong>, that is
+            Insightive's own work, one hundred percent. No subcontracted builds, no white-labels.
+          </p>
+          <p>
+            When the recommendation calls for execution outside our build scope (commerce
+            platform implementation, Amazon marketplace operations, logistics and warehousing,
+            growth and marketing) we engage partners who are experts in exactly that and we
+            name them against the relevant advisory domain above. Today those partners are
+            <strong>Devsinc</strong> (Shopify), <strong>ThisWayUP</strong> (Amazon marketing),
+            <strong>Unity Retail</strong> (logistics and warehousing) and
+            <strong>Synarc</strong> (digital marketing and retail intelligence).
+            Partner-delivered work is always labeled as partner-delivered; the advice that
+            led to it stays independent, because we take no margin disguised as a recommendation.
+          </p>
+          <p>
+            That's the whole model. We never sell you software. Either we help you decide
+            or we build what you'll own.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Process -->
+    <section class="section on-dark">
+      <div class="container">
+        <p class="eyebrow">How it runs</p>
+        <h2>Diagnose. Decide. <span class="serif-em">Close or continue.</span></h2>
+        <div class="steps">
+          <div class="step">
+            <p class="step-meta">Step 1 · 1–4 weeks</p>
+            <h3>Diagnose</h3>
+            <p>Stakeholder interviews, systems inventory, real cost analysis. We map what's breaking down and what it costs you per year.</p>
+          </div>
+          <div class="step">
+            <p class="step-meta">Step 2 · 1–2 weeks</p>
+            <h3>Decide</h3>
+            <p>The written recommendation: stay, extend or build, backed by TCO and ROI across 3- and 5-year horizons. One answer, not a three-option deck.</p>
+          </div>
+          <div class="step">
+            <p class="step-meta">Step 3 · your choice</p>
+            <h3>Close or continue</h3>
+            <p>Take the document and act on it. Transition into a Build. Keep us on as advisor. Or get handed to the right partner, cleanly.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Who -->
+    <section class="section">
+      <div class="container prose-wrap">
+        <p class="eyebrow">Who this is for</p>
+        <h2>Operators with a decision on the desk.</h2>
+        <div class="prose">
+          <p>
+            A founder deciding whether the stack survives the next stage of growth. An
+            SME operator with a customisation quote that feels wrong. A board or PE sponsor
+            who needs an independent read on technology before money moves. If you're holding
+            a decision like that, the diagnosis pays for itself in clarity alone.
+          </p>
+        </div>
+        <a href="/contact?service=advisory" class="btn btn-primary">Book a Discovery Call</a>
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .adv-hero h1 { font-size: var(--text-2xl); font-weight: var(--w-light); margin: var(--s-4) 0; }
+  .sub { max-width: 58ch; font-size: var(--text-md); color: var(--ink-soft); margin-bottom: var(--s-5); }
+  .tinted { background: var(--paper-tint); }
+  .prose-wrap h2 { font-size: var(--text-xl); margin-block: var(--s-3) var(--s-4); max-width: 24ch; }
+  .prose-wrap .btn { margin-top: var(--s-5); }
+
+  .domain-list { margin-top: var(--s-6); border-top: 1px solid var(--hairline); }
+  .domain {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: var(--s-4);
+    padding-block: var(--s-4);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .d-no {
+    font-family: var(--mono);
+    color: var(--royal);
+    font-size: var(--text-sm);
+  }
+  .domain h3 { font-size: var(--text-md); margin-bottom: var(--s-2); }
+  .domain p { color: var(--ink-soft); font-size: var(--text-base); max-width: 64ch; }
+  .d-partners { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-3); }
+  .d-partners-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .plogo {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    letter-spacing: -0.01em;
+    border: 1px solid var(--hairline);
+    padding: 7px 14px;
+    color: var(--ink);
+    text-decoration: none;
+    transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  }
+  .plogo:hover { border-color: var(--royal); color: var(--royal); }
+  .plogo img { display: block; height: 24px; width: auto; }
+  .boundary {
+    margin-top: var(--s-5);
+    max-width: 62ch;
+    color: var(--ink-mute);
+    font-size: var(--text-sm);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-5);
+    margin-top: var(--s-6);
+  }
+  .step-meta {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: var(--s-3);
+  }
+  .step h3 { font-size: var(--text-lg); margin-bottom: var(--s-2); }
+  .step p { color: var(--soft-on-navy); font-size: var(--text-base); }
+  section h2 { font-size: var(--text-xl); margin-top: var(--s-3); }
+
+  @media (max-width: 880px) {
+    .steps { grid-template-columns: 1fr; }
+    .domain { grid-template-columns: 48px 1fr; }
+  }
+</style>
