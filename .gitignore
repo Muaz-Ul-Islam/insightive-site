@@ -7,3 +7,6 @@ dist/
 .DS_Store
 .fuse_hidden*
 preview-*.html
+.vercel/
+.vercel
+
