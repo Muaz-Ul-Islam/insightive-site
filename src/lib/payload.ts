@@ -1,5 +1,18 @@
 const PAYLOAD_CMS_URL = import.meta.env.PAYLOAD_CMS_URL || 'http://127.0.0.1:3000';
 
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 2500): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export interface PayloadLink {
   type: 'reference' | 'custom';
   newTab?: boolean | null;
@@ -93,7 +106,7 @@ export function resolveLink(linkObj: PayloadLink | null | undefined): string {
 export async function fetchGlobal<T>(slug: string): Promise<T> {
   const url = `${PAYLOAD_CMS_URL}/api/globals/${slug}?depth=1`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload global "${slug}": status ${res.status}`);
     }
@@ -126,7 +139,7 @@ export async function fetchSiteSettings(): Promise<PayloadSiteSettings | null> {
 export async function fetchPage<T = any>(slug: string): Promise<T | null> {
   const url = `${PAYLOAD_CMS_URL}/api/pages?where[slug][equals]=${slug}&depth=2`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload page "${slug}": status ${res.status}`);
     }
@@ -144,7 +157,7 @@ export async function fetchPage<T = any>(slug: string): Promise<T | null> {
 export async function fetchOpenRoles(): Promise<PayloadRole[]> {
   const url = `${PAYLOAD_CMS_URL}/api/roles?where[roleStatus][equals]=open&depth=1`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload open roles: status ${res.status}`);
     }
@@ -162,7 +175,7 @@ export async function fetchOpenRoles(): Promise<PayloadRole[]> {
 export async function fetchPosts(): Promise<any[]> {
   const url = `${PAYLOAD_CMS_URL}/api/posts?depth=2&limit=100`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload posts: status ${res.status}`);
     }
@@ -180,7 +193,7 @@ export async function fetchPosts(): Promise<any[]> {
 export async function fetchPostBySlug(slug: string): Promise<any | null> {
   const url = `${PAYLOAD_CMS_URL}/api/posts?where[slug][equals]=${slug}&depth=2`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload post by slug "${slug}": status ${res.status}`);
     }
@@ -200,7 +213,7 @@ export async function fetchPostBySlug(slug: string): Promise<any | null> {
 export async function fetchIndustries(): Promise<any[]> {
   const url = `${PAYLOAD_CMS_URL}/api/industries?depth=1&limit=100&sort=order&where[_status][equals]=published`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload industries: status ${res.status}`);
     }
@@ -218,7 +231,7 @@ export async function fetchIndustries(): Promise<any[]> {
 export async function fetchIndustryBySlug(slug: string): Promise<any | null> {
   const url = `${PAYLOAD_CMS_URL}/api/industries?where[slug][equals]=${slug}&depth=1&limit=1`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload industry by slug "${slug}": status ${res.status}`);
     }
@@ -238,7 +251,7 @@ export async function fetchIndustryBySlug(slug: string): Promise<any | null> {
 export async function fetchPartners(): Promise<any[]> {
   const url = `${PAYLOAD_CMS_URL}/api/partners?depth=1&limit=100&sort=order`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload partners: status ${res.status}`);
     }
@@ -258,7 +271,7 @@ export async function fetchPartners(): Promise<any[]> {
 export async function fetchWork(): Promise<any[]> {
   const url = `${PAYLOAD_CMS_URL}/api/work?depth=2&limit=100&sort=order`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       throw new Error(`Failed to fetch Payload work items: status ${res.status}`);
     }

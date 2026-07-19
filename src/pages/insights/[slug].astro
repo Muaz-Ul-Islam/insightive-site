@@ -1,48 +1,38 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getCollection, render } from 'astro:content';
-import { fetchPosts, fetchPostBySlug, lexicalNodeToHtml } from '../../lib/payload';
+import { fetchPostBySlug, lexicalNodeToHtml } from '../../lib/payload';
 
-export async function getStaticPaths() {
-  // 1. Fetch from CMS
-  let cmsPosts: any[] = [];
-  try {
-    cmsPosts = await fetchPosts();
-  } catch (e) {
-    console.warn('[Insights Slug Page] Failed to fetch CMS posts during getStaticPaths.', e);
-  }
+// SSR: get slug from URL params at request time
+const { slug: slugParam } = Astro.params;
 
-  // 2. Fetch local markdown
+// 1. Try CMS first
+let essay: any = null;
+let isCms = false;
+try {
+  essay = await fetchPostBySlug(slugParam!);
+  if (essay) isCms = true;
+} catch (e) {
+  console.warn(`[Insights/${slugParam}] Failed to fetch from CMS, trying local markdown.`, e);
+}
+
+// 2. Fallback to local markdown
+if (!essay) {
   const localPosts = await getCollection(
     'insights',
     ({ data }) => import.meta.env.DEV || !data.draft
   );
-
-  const paths: any[] = [];
-
-  // Add CMS posts paths
-  cmsPosts.forEach((p) => {
-    paths.push({
-      params: { slug: p.slug },
-      props: { essay: p, isCms: true },
-    });
-  });
-
-  // Add local markdown paths (only if not already overridden by CMS slug)
-  localPosts.forEach((e) => {
-    const slug = e.id.replace(/\.md$/, '');
-    if (!paths.some((p) => p.params.slug === slug)) {
-      paths.push({
-        params: { slug },
-        props: { essay: e, isCms: false },
-      });
-    }
-  });
-
-  return paths;
+  const localMatch = localPosts.find((e) => e.id.replace(/\.md$/, '') === slugParam);
+  if (localMatch) {
+    essay = localMatch;
+    isCms = false;
+  }
 }
 
-const { essay, isCms } = Astro.props;
+// 404 if nothing found
+if (!essay) {
+  return Astro.redirect('/404');
+}
 
 // Determine if we need to render Astro markdown or Lexical HTML
 let ContentComponent: any = null;
