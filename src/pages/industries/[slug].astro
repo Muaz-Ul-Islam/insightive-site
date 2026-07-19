@@ -3,32 +3,43 @@ import Base from '../../layouts/Base.astro';
 import { getCollection, render } from 'astro:content';
 import { fetchIndustries, fetchIndustryBySlug, fetchPage, lexicalNodeToHtml } from '../../lib/payload';
 
-// ── SSR: Fetch at request time ───────────────────────────────────────────────
-const { slug } = Astro.params;
-
-// 1. Try Payload CMS first
-let cmsInd: any = null;
-let localInd: any = null;
-try {
-  cmsInd = await fetchIndustryBySlug(slug!);
-} catch (e) {
-  console.warn(`[Industries/${slug}] Failed to fetch from CMS, trying local markdown.`, e);
-}
-
-// 2. Fallback to local markdown
-if (!cmsInd) {
+// ── Static paths ─────────────────────────────────────────────────────────────
+export async function getStaticPaths() {
+  // 1. Try Payload CMS first
+  let cmsIndustries: any[] = [];
   try {
-    const localIndustries = await getCollection('industries');
-    const match = localIndustries.find((i) => i.id.replace(/\.md$/, '') === slug);
-    if (match) localInd = match;
+    cmsIndustries = await fetchIndustries();
   } catch (e) {
-    console.warn(`[Industries/${slug}] Failed to fetch local markdown.`, e);
+    console.warn('[Industries/[slug]] Failed to fetch Payload industries for paths.', e);
   }
+
+  if (cmsIndustries.length > 0) {
+    return cmsIndustries.map((ind: any) => ({
+      params: { slug: ind.slug },
+      props: { cmsInd: ind, localInd: null },
+    }));
+  }
+
+  // 2. Fallback: local Markdown collection
+  const localIndustries = await getCollection('industries');
+  return localIndustries.map((ind) => ({
+    params: { slug: ind.id.replace(/\.md$/, '') },
+    props: { cmsInd: null, localInd: ind },
+  }));
 }
 
-// 404 if nothing found
-if (!cmsInd && !localInd) {
-  return Astro.redirect('/404');
+// ── Props & Re-fetching ──────────────────────────────────────────────────────
+const { slug } = Astro.params;
+let { cmsInd, localInd } = Astro.props;
+
+// Re-fetch detailed doc to populate relationship fields (like relatedIndustries)
+if (cmsInd) {
+  try {
+    const fresh = await fetchIndustryBySlug(slug);
+    if (fresh) cmsInd = fresh;
+  } catch {
+    // keep static paths prop
+  }
 }
 
 // Render local Markdown body if needed
